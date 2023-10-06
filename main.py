@@ -77,7 +77,7 @@ def main():
     num_gau = len(gau_xyz)
 
     # Load and compile shaders
-    program = util.load_shaders('gptvert.glsl', 'gptfrag.glsl')
+    program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
 
     # load quad geometry
     vao, buffer_id = util.set_attributes(program, ["position"], [quad_v])
@@ -123,7 +123,6 @@ def main():
         glfw.swap_buffers(window)
 
     impl.shutdown()
-    imgui.destroy_context()
     glfw.terminate()
 
 if __name__ == "__main__":

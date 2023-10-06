@@ -43,7 +43,7 @@ class Camera:
         self.last_x = xpos
         self.last_y = ypos
 
-        sensitivity = 0.1
+        sensitivity = 0.02
         xoffset *= sensitivity
         yoffset *= sensitivity
 
