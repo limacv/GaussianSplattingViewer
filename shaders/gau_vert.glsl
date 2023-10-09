@@ -145,12 +145,12 @@ void main()
 	conic = vec3(cov2d.z * det_inv, -cov2d.y * det_inv, cov2d.x * det_inv);
     
     vec4 g_pos_screen = projection_matrix * g_pos_view;
-    vec2 quadwh = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
-    quadwh = quadwh / wh * 2;  // in screen space
+    vec2 quadwh_scr = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
+    vec2 quadwh_ndc = quadwh_scr / wh * 2;  // in ndc space
     g_pos_screen.xyz = g_pos_screen.xyz / g_pos_screen.w;
     g_pos_screen.w = 1.f;
-    g_pos_screen.xy = g_pos_screen.xy + position * quadwh;
-    coordxy = position;
+    g_pos_screen.xy = g_pos_screen.xy + position * quadwh_ndc;
+    coordxy = position * quadwh_scr;
     gl_Position = g_pos_screen;
     
     color = g_dc_color;

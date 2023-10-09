@@ -9,7 +9,7 @@ import util
 camera = util.Camera()
 
 def impl_glfw_init():
-    width, height = 500, 500
+    width, height = 1000, 1000
     window_name = "NeUVF editor"
 
     if not glfw.init():
@@ -60,7 +60,7 @@ def main():
     # gaussian data
     gau_xyz = np.array([
         0, 0, 0,
-        1, 1, 1
+        0, 0, 1
     ]).astype(np.float32).reshape(-1, 3)
     gau_rot = np.array([
         1, 0, 0, 0,
@@ -108,7 +108,9 @@ def main():
     # gl.glTexParameteri(gl.GL_TEXTURE_1D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
     
     # settings
-    gl.glDisable(gl.GL_CULL_FACE);
+    gl.glDisable(gl.GL_CULL_FACE)
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
