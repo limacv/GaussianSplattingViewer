@@ -32,6 +32,15 @@ class Camera:
         )
         return np.array(project_mat).astype(np.float32)
 
+    def get_htanfovxy_focal(self):
+        htany = np.tan(self.fovy / 2)
+        htanx = htany / self.h * self.w
+        focal = self.h / (2 * htany)
+        return [htanx, htany, focal]
+
+    def get_focal(self):
+        return self.h / (2 * np.tan(self.fovy / 2))
+
     def process_mouse(self, xpos, ypos):
         if self.first_mouse:
             self.last_x = xpos
@@ -202,6 +211,13 @@ def set_uniform_v1f(shader, contents, name):
         glGetUniformLocation(shader, name),
         len(contents),
         contents
+    )
+    
+def set_uniform_v2(shader, contents, name):
+    glUseProgram(shader)
+    glUniform2f(
+        glGetUniformLocation(shader, name),
+        contents[0], contents[1]
     )
 
 def set_texture2d(img, texid=None):

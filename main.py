@@ -9,7 +9,7 @@ import util
 camera = util.Camera()
 
 def impl_glfw_init():
-    width, height = 1280, 720
+    width, height = 500, 500
     window_name = "NeUVF editor"
 
     if not glfw.init():
@@ -46,11 +46,11 @@ def main():
 
     # Vertex data for a quad
     quad_v = np.array([
-        -1,  1, 0.0,
-        1,  1, 0.0,
-        1, -1, 0.0,
-        -1, -1, 0.0,
-    ], dtype=np.float32).reshape(4, 3)
+        -1,  1,
+        1,  1,
+        1, -1,
+        -1, -1
+    ], dtype=np.float32).reshape(4, 2)
 
     quad_f = np.array([
         0, 1, 2,
@@ -67,13 +67,16 @@ def main():
         1, 0, 0, 0
     ]).astype(np.float32).reshape(-1, 4)
     gau_s = np.array([
-        1, 1, 1,
-        1, 1, 1
+        0.03, 0.03, 0.03,
+        0.03, 0.03, 0.03
     ]).astype(np.float32).reshape(-1, 3)
     gau_c = np.array([
         1, 0, 1.,
         1, 1, 0,
     ]).astype(np.float32).reshape(-1, 3)
+    gau_a = np.array([
+        1, 1,
+    ]).astype(np.float32).reshape(-1, 1)
     num_gau = len(gau_xyz)
 
     # Load and compile shaders
@@ -88,11 +91,13 @@ def main():
     util.set_attribute_instanced(program, "g_rot", gau_rot, vao=vao)
     util.set_attribute_instanced(program, "g_scale", gau_s, vao=vao)
     util.set_attribute_instanced(program, "g_dc_color", gau_c, vao=vao)
+    util.set_attribute_instanced(program, "g_opacity", gau_a, vao=vao)
 
     view_mat = camera.get_view_matrix()
     proj_mat = camera.get_project_matrix()
     util.set_uniform_mat4(program, proj_mat, "projection_matrix")
     util.set_uniform_mat4(program, view_mat, "view_matrix")
+    util.set_uniform_v3(program, camera.get_htanfovxy_focal(), "hfovxy_focal")
     
     # Create position texture for instancing
     # instance_positions = np.random.rand(1000, 3) * 2.0 - 1.0  # Random positions in [-1, 1]
@@ -101,6 +106,9 @@ def main():
     # gl.glTexImage1D(gl.GL_TEXTURE_1D, 0, gl.GL_RGB, len(instance_positions), 0, gl.GL_RGB, gl.GL_FLOAT, instance_positions)
     # gl.glTexParameteri(gl.GL_TEXTURE_1D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
     # gl.glTexParameteri(gl.GL_TEXTURE_1D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+    
+    # settings
+    gl.glDisable(gl.GL_CULL_FACE);
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
