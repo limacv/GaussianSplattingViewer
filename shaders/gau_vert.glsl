@@ -83,11 +83,15 @@ mat3 computeCov3D(vec3 scale, vec4 q)  // should be correct
     S[0][0] = scale.x;
 	S[1][1] = scale.y;
 	S[2][2] = scale.z;
+	float r = q.x;
+	float x = q.y;
+	float y = q.z;
+	float z = q.w;
 
     mat3 R = mat3(
-		1.f - 2.f * (q.y * q.y + q.z * q.z), 2.f * (q.x * q.y - q.r * q.z), 2.f * (q.x * q.z + q.r * q.y),
-		2.f * (q.x * q.y + q.r * q.z), 1.f - 2.f * (q.x * q.x + q.z * q.z), 2.f * (q.y * q.z - q.r * q.x),
-		2.f * (q.x * q.z - q.r * q.y), 2.f * (q.y * q.z + q.r * q.x), 1.f - 2.f * (q.x * q.x + q.y * q.y)
+		1.f - 2.f * (y * y + z * z), 2.f * (x * y - r * z), 2.f * (x * z + r * y),
+		2.f * (x * y + r * z), 1.f - 2.f * (x * x + z * z), 2.f * (y * z - r * x),
+		2.f * (x * z - r * y), 2.f * (y * z + r * x), 1.f - 2.f * (x * x + y * y)
 	);
 
     mat3 M = S * R;

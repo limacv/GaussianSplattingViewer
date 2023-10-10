@@ -67,8 +67,8 @@ def main():
         1, 0, 0, 0
     ]).astype(np.float32).reshape(-1, 4)
     gau_s = np.array([
-        0.03, 0.03, 0.03,
-        0.03, 0.03, 0.03
+        0.03, 0.03, 0.1,
+        0.1, 0.1, 0.03
     ]).astype(np.float32).reshape(-1, 3)
     gau_c = np.array([
         1, 0, 1.,
