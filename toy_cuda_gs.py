@@ -4,7 +4,6 @@ from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianR
 import math
 from typing import NamedTuple
 import numpy as np
-from sh_utils import eval_sh
 
 C0 = 0.28209479177387814
 C1 = 0.4886025119029199
@@ -260,7 +259,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     rendered_image, radii = rasterizer(
         means3D = means3D,
-        means2D = means2D,
+        means2D = None,
         shs = shs,
         colors_precomp = colors_precomp,
         opacities = opacity,
@@ -277,6 +276,45 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
 
 
 if __name__ == "__main__":
+    file = np.load("save.npz")
+    
+    gau_xyz = torch.tensor(file["gau_xyz"]).cuda().float()
+    gau_s = torch.tensor(file["gau_s"]).cuda().float()
+    gau_rot = torch.tensor(file["gau_rot"]).cuda().float()
+    gau_c = torch.tensor(file["gau_c"]).cuda().float()
+    gau_a = torch.tensor(file["gau_a"]).cuda().float()
+    viewmat = torch.tensor(file["viewmat"]).cuda().float()
+    projmat = torch.tensor(file["projmat"]).cuda().float()
+    hfovxyfocal = torch.tensor(file["hfovxyfocal"]).cuda().float()
+    raster_settings = GaussianRasterizationSettings(
+        image_height=int(100),
+        image_width=int(100),
+        tanfovx=hfovxyfocal[0],
+        tanfovy=hfovxyfocal[1],
+        bg=torch.tensor([0, 0, 0]).cuda().float(),
+        scale_modifier=1.0,
+        viewmatrix=viewmat,
+        projmatrix=projmat,
+        sh_degree=1,
+        campos=torch.tensor([0, 0, 0.]).float().cuda(),
+        prefiltered=False,
+        debug=True
+    )
+    rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+    rendered_image, radii = rasterizer(
+        means3D = gau_xyz,
+        means2D = None,
+        shs = gau_c,
+        colors_precomp = None,
+        opacities = gau_a,
+        scales = gau_s,
+        rotations = gau_rot,
+        cov3D_precomp = None)
+    
+    import matplotlib.pyplot as plt
+    plt.imshow(rendered_image.permute(1, 2, 0)[..., 0].cpu().numpy())
+    plt.show()
+    
     camera = Camera(0, np.eye(3), np.array([0, 0, 0]), np.pi / 2, np.pi / 2)    
     raster_settings = GaussianRasterizationSettings(
         image_height=int(100),

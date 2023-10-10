@@ -4,6 +4,7 @@ from imgui.integrations.glfw import GlfwRenderer
 import imgui
 import numpy as np
 import util
+import imageio
 
 
 camera = util.Camera()
@@ -60,22 +61,26 @@ def main():
     # gaussian data
     gau_xyz = np.array([
         0, 0, 0,
-        0, 0, 1
+        0, 0, 1,
+        0, 0, 2,
     ]).astype(np.float32).reshape(-1, 3)
     gau_rot = np.array([
+        1, 0, 0, 0,
         1, 0, 0, 0,
         1, 0, 0, 0
     ]).astype(np.float32).reshape(-1, 4)
     gau_s = np.array([
         0.03, 0.03, 0.1,
-        0.1, 0.1, 0.03
+        0.1, 0.1, 0.03,
+        0.2, 0.2, 0.03
     ]).astype(np.float32).reshape(-1, 3)
     gau_c = np.array([
         1, 0, 1.,
         1, 1, 0,
+        0, 1, 1,
     ]).astype(np.float32).reshape(-1, 3)
     gau_a = np.array([
-        1, 1,
+        1, 1, 1
     ]).astype(np.float32).reshape(-1, 1)
     num_gau = len(gau_xyz)
 
@@ -117,8 +122,7 @@ def main():
         impl.process_inputs()
 
         imgui.new_frame()
-        imgui.render()
-
+        
         gl.glClearColor(0, 0, 0, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
@@ -129,6 +133,35 @@ def main():
         gl.glBindVertexArray(vao)
         gl.glDrawElementsInstanced(gl.GL_TRIANGLES, len(quad_f.reshape(-1)), gl.GL_UNSIGNED_INT, None, num_gau)
 
+        # imgui ui
+        if imgui.begin("Control", True):
+            if imgui.button(label='save image'):
+                width, height = glfw.get_framebuffer_size(window)
+                nrChannels = 3;
+                stride = nrChannels * width;
+                stride += (4 - stride % 4) if stride % 4 else 0
+                bufferSize = stride * height;
+                gl.glPixelStorei(gl.GL_PACK_ALIGNMENT, 4)
+                gl.glReadBuffer(gl.GL_FRONT)
+                bufferdata = gl.glReadPixels(0, 0, width, height, gl.GL_RGB, gl.GL_UNSIGNED_BYTE)
+                img = np.frombuffer(bufferdata, np.uint8, -1).reshape(height, width, 3)
+                imageio.imwrite("save.png", img[::-1])
+                
+                # save intermediate information
+                np.savez(
+                    "save.npz",
+                    gau_xyz=gau_xyz,
+                    gau_s=gau_s,
+                    gau_rot=gau_rot,
+                    gau_c=gau_c,
+                    gau_a=gau_a,
+                    viewmat=camera.get_view_matrix(),
+                    projmat=camera.get_project_matrix(),
+                    hfovxyfocal=camera.get_htanfovxy_focal()
+                )
+            imgui.end()
+
+        imgui.render()
         impl.render(imgui.get_draw_data())
         glfw.swap_buffers(window)
 
