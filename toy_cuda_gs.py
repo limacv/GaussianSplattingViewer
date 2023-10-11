@@ -4,6 +4,8 @@ from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianR
 import math
 from typing import NamedTuple
 import numpy as np
+import imageio
+import matplotlib.pyplot as plt
 
 C0 = 0.28209479177387814
 C1 = 0.4886025119029199
@@ -286,6 +288,7 @@ if __name__ == "__main__":
     viewmat = torch.tensor(file["viewmat"]).cuda().float()
     projmat = torch.tensor(file["projmat"]).cuda().float()
     hfovxyfocal = torch.tensor(file["hfovxyfocal"]).cuda().float()
+    camera = Camera(0, np.eye(3), np.array([0, 0, 3]), np.pi / 2, np.pi / 2)    
     raster_settings = GaussianRasterizationSettings(
         image_height=int(100),
         image_width=int(100),
@@ -293,8 +296,8 @@ if __name__ == "__main__":
         tanfovy=hfovxyfocal[1],
         bg=torch.tensor([0, 0, 0]).cuda().float(),
         scale_modifier=1.0,
-        viewmatrix=viewmat,
-        projmatrix=projmat,
+        viewmatrix=camera.world_view_transform,
+        projmatrix=camera.full_proj_transform,
         sh_degree=1,
         campos=torch.tensor([0, 0, 0.]).float().cuda(),
         prefiltered=False,
@@ -311,17 +314,20 @@ if __name__ == "__main__":
         rotations = gau_rot,
         cov3D_precomp = None)
     
-    import matplotlib.pyplot as plt
-    plt.imshow(rendered_image.permute(1, 2, 0)[..., 0].cpu().numpy())
-    plt.show()
+    # plt.imshow(rendered_image.permute(1, 2, 0)[..., 0].cpu().numpy())
+    # plt.show()
     
-    camera = Camera(0, np.eye(3), np.array([0, 0, 0]), np.pi / 2, np.pi / 2)    
+    plt.figure()
+    plt.imshow(imageio.imread("save.png"))
+    
+    # case 2
+    camera = Camera(0, np.eye(3), np.array([0, 0, 3]), np.pi / 2, np.pi / 2)    
     raster_settings = GaussianRasterizationSettings(
-        image_height=int(100),
-        image_width=int(100),
-        tanfovx=2,
-        tanfovy=2,
-        bg=torch.tensor([0, 0, 0.5]).cuda(),
+        image_height=int(500),
+        image_width=int(500),
+        tanfovx=1,
+        tanfovy=1,
+        bg=torch.tensor([0, 0, 0]).float().cuda(),
         scale_modifier=1.0,
         viewmatrix=camera.world_view_transform,
         projmatrix=camera.full_proj_transform,
@@ -332,13 +338,29 @@ if __name__ == "__main__":
     )
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
     
-    means3D = torch.rand(10, 3).float().cuda()
+    means3D = torch.tensor([
+        0, 0, 0,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+    ]).reshape(-1, 3).float().cuda()
     means2D = None
-    shs = torch.zeros(10, 4, 3).float().cuda()
-    opacity = torch.ones(10, 1).float().cuda()
-    scales = torch.ones(10, 3).float().cuda() * 0.1
-    rotations = torch.zeros(10, 4).float().cuda()
-    rotations[:, 0] = 0.2
+    shs = torch.ones(10, 4, 3).float().cuda()
+    opacity = torch.tensor([
+        1, 1, 1, 1
+    ]).reshape(-1, 1).float().cuda()
+    scales = torch.tensor([
+        0.03, 0.03, 0.03,
+        0.2, 0.03, 0.03,
+        0.03, 0.2, 0.03,
+        0.03, 0.03, 0.2
+    ]).reshape(-1, 3).float().cuda()
+    rotations = torch.tensor([
+        1, 0, 0, 0,
+        1, 0, 0, 0,
+        1, 0, 0, 0,
+        1, 0, 0, 0
+    ]).reshape(-1, 4).float().cuda()
     
     rendered_image, radii = rasterizer(
         means3D = means3D,
@@ -351,5 +373,8 @@ if __name__ == "__main__":
         cov3D_precomp = None)
     
     import matplotlib.pyplot as plt
-    plt.imshow(rendered_image.permute(1, 2, 0)[..., 0].cpu().numpy())
+    plt.figure()
+    img = rendered_image.permute(1, 2, 0)[..., 0].cpu().numpy()
+    img = (img * 255).clip(0, 255).astype(np.uint8)
+    plt.imshow(img)
     plt.show()

@@ -115,7 +115,7 @@ vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, 
 		0.0f, focal_y / t.z, -(focal_y * t.y) / (t.z * t.z),
 		0, 0, 0
     );
-    mat3 W = mat3(viewmatrix);  // try transpose later
+    mat3 W = transpose(mat3(viewmatrix));
     mat3 T = W * J;
 
     mat3 cov = transpose(T) * transpose(cov3D) * T;

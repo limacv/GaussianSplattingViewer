@@ -7,10 +7,10 @@ import util
 import imageio
 
 
-camera = util.Camera()
+camera = util.Camera(500, 500)
 
 def impl_glfw_init():
-    width, height = 1000, 1000
+    width, height = 500, 500
     window_name = "NeUVF editor"
 
     if not glfw.init():
@@ -36,14 +36,18 @@ def impl_glfw_init():
 
     return window
 
-def mouse_callback(window, xpos, ypos):
+def cursor_pos_callback(window, xpos, ypos):
     camera.process_mouse(xpos, ypos)
+
+def mouse_button_callback(window, button, action, mod):
+    camera.is_leftmouse_pressed = (button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS)
 
 def main():
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
-    glfw.set_cursor_pos_callback(window, mouse_callback)
+    glfw.set_cursor_pos_callback(window, cursor_pos_callback)
+    glfw.set_mouse_button_callback(window, mouse_button_callback)
 
     # Vertex data for a quad
     quad_v = np.array([
@@ -61,26 +65,30 @@ def main():
     # gaussian data
     gau_xyz = np.array([
         0, 0, 0,
+        1, 0, 0,
+        0, 1, 0,
         0, 0, 1,
-        0, 0, 2,
     ]).astype(np.float32).reshape(-1, 3)
     gau_rot = np.array([
+        1, 0, 0, 0,
         1, 0, 0, 0,
         1, 0, 0, 0,
         1, 0, 0, 0
     ]).astype(np.float32).reshape(-1, 4)
     gau_s = np.array([
-        0.03, 0.03, 0.1,
-        0.1, 0.1, 0.03,
-        0.2, 0.2, 0.03
+        0.03, 0.03, 0.03,
+        0.2, 0.03, 0.03,
+        0.03, 0.2, 0.03,
+        0.03, 0.03, 0.2
     ]).astype(np.float32).reshape(-1, 3)
     gau_c = np.array([
         1, 0, 1.,
-        1, 1, 0,
-        0, 1, 1,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
     ]).astype(np.float32).reshape(-1, 3)
     gau_a = np.array([
-        1, 1, 1
+        1, 1, 1, 1
     ]).astype(np.float32).reshape(-1, 1)
     num_gau = len(gau_xyz)
 

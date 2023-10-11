@@ -4,11 +4,11 @@ import numpy as np
 import glm
 
 class Camera:
-    def __init__(self):
+    def __init__(self, h, w):
         self.znear = 0.01
         self.zfar = 100
-        self.h = 100
-        self.w = 100
+        self.h = h
+        self.w = w
         self.fovy = np.pi / 2
         self.position = np.array([0.0, 0.0, 3.0])
         self.target = np.array([0.0, 0.0, 0.0])
@@ -19,6 +19,8 @@ class Camera:
         self.last_x = 640
         self.last_y = 360
         self.first_mouse = True
+        
+        self.is_leftmouse_pressed = False
 
     def get_view_matrix(self):
         return np.array(glm.lookAt(self.position, self.target, self.up))
@@ -42,6 +44,11 @@ class Camera:
         return self.h / (2 * np.tan(self.fovy / 2))
 
     def process_mouse(self, xpos, ypos):
+        if not self.is_leftmouse_pressed:
+            self.last_x = xpos
+            self.last_y = ypos
+            return
+        
         if self.first_mouse:
             self.last_x = xpos
             self.last_y = ypos
