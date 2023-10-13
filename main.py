@@ -100,7 +100,8 @@ def main():
     util.set_faces_tovao(vao, quad_f)
     
     # load gaussian geometry
-    util.set_attribute_instanced(program, "g_pos", gau_xyz, vao=vao)
+    # util.set_attribute_instanced(program, "g_pos", gau_xyz, vao=vao)
+    util.set_storage_buffer_data(program, "gaussian_pos", gau_xyz, vao=vao)
     util.set_attribute_instanced(program, "g_rot", gau_rot, vao=vao)
     util.set_attribute_instanced(program, "g_scale", gau_s, vao=vao)
     util.set_attribute_instanced(program, "g_dc_color", gau_c, vao=vao)

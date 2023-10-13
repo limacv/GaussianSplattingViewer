@@ -2,6 +2,7 @@ from OpenGL.GL import *
 import OpenGL.GL.shaders as shaders
 import numpy as np
 import glm
+import ctypes
 
 class Camera:
     def __init__(self, h, w):
@@ -140,6 +141,26 @@ def set_attribute_instanced(program, key, value, instance_stride=1, vao=None, bu
     glVertexAttribDivisor(pos, instance_stride)
     glBindBuffer(GL_ARRAY_BUFFER,0)
     return vao, buffer_id
+
+def set_storage_buffer_data(program, key, value: np.ndarray, vao=None, buffer_id=None):
+    glUseProgram(program)
+    if vao is None:
+        vao = glGenVertexArrays(1)
+    glBindVertexArray(vao)
+    
+    if buffer_id is None:
+        buffer_id = glGenBuffers(1)
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer_id)
+    glBufferData(GL_SHADER_STORAGE_BUFFER, value.nbytes, value.reshape(-1), GL_STATIC_READ)
+    ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY)
+    count = len(value.reshape(-1))
+    array = (GLfloat * count).from_address(ptr)
+    src_ptr = value.ctypes
+    ctypes.memmove(array, src_ptr, count)
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER)
+    pos = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, key)
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, pos, buffer_id)
+    glShaderStorageBlockBinding(program, pos, buffer_id)
 
 def set_faces_tovao(vao, faces: np.ndarray):
     # faces

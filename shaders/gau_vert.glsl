@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 
 #define SH_C0 0.28209479177387814f
 #define SH_C1 0.4886025119029199f
@@ -17,8 +17,11 @@
 #define SH_C3_5 1.445305721320277f
 #define SH_C3_6 -0.5900435899266435f
 
+layout (std430, binding = 1) buffer gaussian_pos {
+    vec3 g_pos[];
+};
 layout(location = 0) in vec2 position;
-layout(location = 1) in vec3 g_pos;
+// layout(location = 1) in vec3 g_pos;
 layout(location = 2) in vec4 g_rot;
 layout(location = 3) in vec3 g_scale;
 layout(location = 4) in vec3 g_dc_color;
@@ -130,7 +133,7 @@ void main()
 {
     float scale_modifier = 1.f;
     mat3 cov3d = computeCov3D(g_scale * scale_modifier, g_rot);
-    vec4 g_pos_view = view_matrix * vec4(g_pos, 1.f);
+    vec4 g_pos_view = view_matrix * vec4(g_pos[gl_InstanceID], 1.f);
     vec2 wh = 2 * hfovxy_focal.xy * hfovxy_focal.z;
     vec3 cov2d = computeCov2D(g_pos_view, 
                               hfovxy_focal.z, 
