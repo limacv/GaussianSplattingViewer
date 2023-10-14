@@ -82,11 +82,11 @@ def main():
         0.03, 0.03, 0.2
     ]).astype(np.float32).reshape(-1, 3)
     gau_c = np.array([
-        1, 0, 1.,
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1,
-    ]).astype(np.float32).reshape(-1, 3)
+        1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]).astype(np.float32).reshape(-1, 48)
     gau_a = np.array([
         1, 1, 1, 1
     ]).astype(np.float32).reshape(-1, 1)
@@ -110,13 +110,14 @@ def main():
     ], axis=-1)
     gaussian_data = np.ascontiguousarray(gaussian_data)
     util.set_storage_buffer_data(program, "gaussian_data", gaussian_data, vao=vao)
-    util.set_uniform_1int(program, 3, "sh_dim")
+    util.set_uniform_1int(program, gau_c.shape[-1], "sh_dim")
     util.set_uniform_1f(program, 1., "scale_modifier")
     
     view_mat = camera.get_view_matrix()
     proj_mat = camera.get_project_matrix()
     util.set_uniform_mat4(program, proj_mat, "projection_matrix")
     util.set_uniform_mat4(program, view_mat, "view_matrix")
+    util.set_uniform_v3(program, camera.position, "cam_pos")
     util.set_uniform_v3(program, camera.get_htanfovxy_focal(), "hfovxy_focal")
     
     # Create position texture for instancing
@@ -143,6 +144,7 @@ def main():
 
         view_mat = camera.get_view_matrix()
         util.set_uniform_mat4(program, view_mat, "view_matrix")
+        util.set_uniform_v3(program, camera.position, "cam_pos")
 
         gl.glUseProgram(program)
         gl.glBindVertexArray(vao)
