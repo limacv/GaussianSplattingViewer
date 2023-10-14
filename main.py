@@ -105,11 +105,11 @@ def main():
     # util.set_attribute_instanced(program, "g_scale", gau_s, vao=vao)
     # util.set_attribute_instanced(program, "g_dc_color", gau_c, vao=vao)
     # util.set_attribute_instanced(program, "g_opacity", gau_a, vao=vao)
-    util.set_storage_buffer_data(program, "gaussian_pos", gau_xyz, vao=vao)
-    util.set_storage_buffer_data(program, "gaussian_rot", gau_rot, vao=vao)
-    util.set_storage_buffer_data(program, "gaussian_scale", gau_s, vao=vao)
-    util.set_storage_buffer_data(program, "gaussian_sh", gau_c, vao=vao)
-    util.set_storage_buffer_data(program, "gaussian_opacity", gau_a, vao=vao)
+    gaussian_data = np.concatenate([
+        gau_xyz, gau_rot, gau_s, gau_a, gau_c
+    ], axis=-1)
+    gaussian_data = np.ascontiguousarray(gaussian_data)
+    util.set_storage_buffer_data(program, "gaussian_data", gaussian_data, vao=vao)
     util.set_uniform_1int(program, 3, "sh_dim")
     util.set_uniform_1f(program, 1., "scale_modifier")
     

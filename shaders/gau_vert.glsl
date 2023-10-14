@@ -24,21 +24,20 @@ layout(location = 0) in vec2 position;
 // layout(location = 4) in vec3 g_dc_color;
 // layout(location = 5) in float g_opacity;
 
-layout (std430, binding=0) buffer gaussian_pos {
-    float g_pos[];
+layout (std430, binding=0) buffer gaussian_data {
+	float g_data[];
+	// compact version of following data
+	// vec3 g_pos[];
+	// vec4 g_rot[];
+	// vec3 g_scale[];
+	// float g_opacity[];
+	// vec3 g_sh[];
 };
-layout (std430, binding=1) buffer gaussian_rot {
-    float g_rot[];
-};
-layout (std430, binding=2) buffer gaussian_scale {
-    float g_scale[];
-};
-layout (std430, binding=3) buffer gaussian_sh {
-	float g_sh[];
-};
-layout (std430, binding=4) buffer gaussian_opacity {
-	float g_opacity[];
-};
+#define POS_IDX 0
+#define ROT_IDX 3
+#define SCALE_IDX 7
+#define OPACITY_IDX 10
+#define SH_IDX 11
 
 uniform mat4 view_matrix;
 uniform mat4 projection_matrix;
@@ -146,13 +145,20 @@ vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, 
 
 void main()
 {
-    vec4 gpos = vec4(g_pos[gl_InstanceID * 3], g_pos[gl_InstanceID * 3 + 1], g_pos[gl_InstanceID * 3 + 2], 1.f);
-    vec4 grot = vec4(g_rot[gl_InstanceID * 4], g_rot[gl_InstanceID * 4 + 1], g_rot[gl_InstanceID * 4 + 2], g_rot[gl_InstanceID * 4 + 2]);
-    vec3 gscale = vec3(g_scale[gl_InstanceID * 3], g_scale[gl_InstanceID * 3 + 1], g_scale[gl_InstanceID * 3 + 2]);
-    vec3 gsh = vec3(g_sh[gl_InstanceID * sh_dim], g_sh[gl_InstanceID * sh_dim + 1], g_sh[gl_InstanceID * sh_dim + 2]);
-	float gopacity = g_opacity[gl_InstanceID];
-    mat3 cov3d = computeCov3D(gscale * scale_modifier, grot);
-    vec4 g_pos_view = view_matrix * gpos;
+	int total_dim = 3 + 4 + 3 + 1 + sh_dim;
+	int start = gl_InstanceID * total_dim;
+	int pos_start = start + POS_IDX;
+	vec4 g_pos = vec4(g_data[pos_start], g_data[pos_start + 1], g_data[pos_start + 2], 1.f);
+	int rot_start = start + ROT_IDX;
+	vec4 g_rot = vec4(g_data[rot_start], g_data[rot_start + 1], g_data[rot_start + 2], g_data[rot_start + 3]);
+	int scale_start = start + SCALE_IDX;
+	vec3 g_scale = vec3(g_data[scale_start], g_data[scale_start + 1], g_data[scale_start + 2]);
+	float g_opacity = g_data[start + OPACITY_IDX];
+	int sh_start = start + SH_IDX;
+    vec3 g_sh = vec3(g_data[sh_start], g_data[sh_start + 1], g_data[sh_start + 2]);
+
+    mat3 cov3d = computeCov3D(g_scale * scale_modifier, g_rot);
+    vec4 g_pos_view = view_matrix * g_pos;
     vec2 wh = 2 * hfovxy_focal.xy * hfovxy_focal.z;
     vec3 cov2d = computeCov2D(g_pos_view, 
                               hfovxy_focal.z, 
@@ -179,6 +185,6 @@ void main()
     coordxy = position * quadwh_scr;
     gl_Position = g_pos_screen;
     
-    color = gsh;
-    alpha = gopacity;
+    color = g_sh;
+    alpha = g_opacity;
 }
