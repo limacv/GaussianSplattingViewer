@@ -24,6 +24,13 @@ layout(location = 0) in vec2 position;
 // layout(location = 4) in vec3 g_dc_color;
 // layout(location = 5) in float g_opacity;
 
+
+#define POS_IDX 0
+#define ROT_IDX 3
+#define SCALE_IDX 7
+#define OPACITY_IDX 10
+#define SH_IDX 11
+
 layout (std430, binding=0) buffer gaussian_data {
 	float g_data[];
 	// compact version of following data
@@ -33,11 +40,9 @@ layout (std430, binding=0) buffer gaussian_data {
 	// float g_opacity[];
 	// vec3 g_sh[];
 };
-#define POS_IDX 0
-#define ROT_IDX 3
-#define SCALE_IDX 7
-#define OPACITY_IDX 10
-#define SH_IDX 11
+layout (std430, binding=1) buffer gaussian_order {
+	int gi[];
+};
 
 uniform mat4 view_matrix;
 uniform mat4 projection_matrix;
@@ -111,8 +116,9 @@ vec4 get_vec4(int offset)
 
 void main()
 {
+	int boxid = gi[gl_InstanceID];
 	int total_dim = 3 + 4 + 3 + 1 + sh_dim;
-	int start = gl_InstanceID * total_dim;
+	int start = boxid * total_dim;
 	vec4 g_pos = vec4(get_vec3(start + POS_IDX), 1.f);
 	vec4 g_rot = get_vec4(start + ROT_IDX);
 	vec3 g_scale = get_vec3(start + SCALE_IDX);

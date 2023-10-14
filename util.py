@@ -143,7 +143,7 @@ def set_attribute_instanced(program, key, value, instance_stride=1, vao=None, bu
 
 def set_storage_buffer_data(program, key, value: np.ndarray, bind_idx=None, vao=None, buffer_id=None):
     glUseProgram(program)
-    if vao is None:
+    if vao is None:  # actually seems unnecessary
         vao = glGenVertexArrays(1)
     glBindVertexArray(vao)
     

@@ -92,6 +92,8 @@ def main():
     ]).astype(np.float32).reshape(-1, 1)
     num_gau = len(gau_xyz)
 
+    indexing = np.arange(num_gau).astype(np.int32).reshape(-1, 1)
+    
     # Load and compile shaders
     program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
 
@@ -110,6 +112,7 @@ def main():
     ], axis=-1)
     gaussian_data = np.ascontiguousarray(gaussian_data)
     util.set_storage_buffer_data(program, "gaussian_data", gaussian_data, vao=vao)
+    util.set_storage_buffer_data(program, "gi", indexing, vao=vao)
     util.set_uniform_1int(program, gau_c.shape[-1], "sh_dim")
     util.set_uniform_1f(program, 1., "scale_modifier")
     
