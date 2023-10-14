@@ -151,16 +151,11 @@ def set_storage_buffer_data(program, key, value: np.ndarray, vao=None, buffer_id
     if buffer_id is None:
         buffer_id = glGenBuffers(1)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer_id)
-    glBufferData(GL_SHADER_STORAGE_BUFFER, value.nbytes, value.reshape(-1), GL_STATIC_READ)
-    ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY)
-    count = len(value.reshape(-1))
-    array = (GLfloat * count).from_address(ptr)
-    src_ptr = value.ctypes
-    ctypes.memmove(array, src_ptr, count)
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER)
+    glBufferData(GL_SHADER_STORAGE_BUFFER, value.nbytes, value.reshape(-1), GL_STATIC_DRAW)
     pos = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, key)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, pos, buffer_id)
-    glShaderStorageBlockBinding(program, pos, buffer_id)
+    # glShaderStorageBlockBinding(program, 0, 1)
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
 def set_faces_tovao(vao, faces: np.ndarray):
     # faces
@@ -185,7 +180,6 @@ def set_gl_bindings(vertices, faces):
     element_buffer = glGenBuffers(1)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.nbytes, faces, GL_STATIC_DRAW)
-    
     # glVertexAttribPointer(1, 3, GL_FLOAT, False, 36, ctypes.c_void_p(12))
     # glEnableVertexAttribArray(1)
     # glVertexAttribPointer(2, 3, GL_FLOAT, False, 36, ctypes.c_void_p(12))
