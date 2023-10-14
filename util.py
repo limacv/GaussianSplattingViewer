@@ -137,12 +137,11 @@ def set_attribute_instanced(program, key, value, instance_stride=1, vao=None, bu
     pos = glGetAttribLocation(program, key)
     glVertexAttribPointer(pos, length, GL_FLOAT, False, 0, None)
     glEnableVertexAttribArray(pos)
-        
     glVertexAttribDivisor(pos, instance_stride)
     glBindBuffer(GL_ARRAY_BUFFER,0)
     return vao, buffer_id
 
-def set_storage_buffer_data(program, key, value: np.ndarray, vao=None, buffer_id=None):
+def set_storage_buffer_data(program, key, value: np.ndarray, bind_idx=None, vao=None, buffer_id=None):
     glUseProgram(program)
     if vao is None:
         vao = glGenVertexArrays(1)
@@ -154,7 +153,7 @@ def set_storage_buffer_data(program, key, value: np.ndarray, vao=None, buffer_id
     glBufferData(GL_SHADER_STORAGE_BUFFER, value.nbytes, value.reshape(-1), GL_STATIC_DRAW)
     pos = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, key)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, pos, buffer_id)
-    # glShaderStorageBlockBinding(program, 0, 1)
+    glShaderStorageBlockBinding(program, pos, pos)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
 def set_faces_tovao(vao, faces: np.ndarray):

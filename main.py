@@ -102,12 +102,17 @@ def main():
     # load gaussian geometry
     # util.set_attribute_instanced(program, "g_pos", gau_xyz, vao=vao)
     # util.set_attribute_instanced(program, "g_rot", gau_rot, vao=vao)
+    # util.set_attribute_instanced(program, "g_scale", gau_s, vao=vao)
+    # util.set_attribute_instanced(program, "g_dc_color", gau_c, vao=vao)
+    # util.set_attribute_instanced(program, "g_opacity", gau_a, vao=vao)
     util.set_storage_buffer_data(program, "gaussian_pos", gau_xyz, vao=vao)
     util.set_storage_buffer_data(program, "gaussian_rot", gau_rot, vao=vao)
-    util.set_attribute_instanced(program, "g_scale", gau_s, vao=vao)
-    util.set_attribute_instanced(program, "g_dc_color", gau_c, vao=vao)
-    util.set_attribute_instanced(program, "g_opacity", gau_a, vao=vao)
-
+    util.set_storage_buffer_data(program, "gaussian_scale", gau_s, vao=vao)
+    util.set_storage_buffer_data(program, "gaussian_sh", gau_c, vao=vao)
+    util.set_storage_buffer_data(program, "gaussian_opacity", gau_a, vao=vao)
+    util.set_uniform_1int(program, 3, "sh_dim")
+    util.set_uniform_1f(program, 1., "scale_modifier")
+    
     view_mat = camera.get_view_matrix()
     proj_mat = camera.get_project_matrix()
     util.set_uniform_mat4(program, proj_mat, "projection_matrix")

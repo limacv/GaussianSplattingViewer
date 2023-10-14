@@ -24,19 +24,27 @@ layout(location = 0) in vec2 position;
 // layout(location = 4) in vec3 g_dc_color;
 // layout(location = 5) in float g_opacity;
 
-layout (std430) buffer gaussian_pos {
+layout (std430, binding=0) buffer gaussian_pos {
     float g_pos[];
 };
-layout (std430) buffer gaussian_rot {
+layout (std430, binding=1) buffer gaussian_rot {
     float g_rot[];
 };
-layout(location = 3) in vec3 g_scale;
-layout(location = 4) in vec3 g_dc_color;
-layout(location = 5) in float g_opacity;
+layout (std430, binding=2) buffer gaussian_scale {
+    float g_scale[];
+};
+layout (std430, binding=3) buffer gaussian_sh {
+	float g_sh[];
+};
+layout (std430, binding=4) buffer gaussian_opacity {
+	float g_opacity[];
+};
 
 uniform mat4 view_matrix;
 uniform mat4 projection_matrix;
 uniform vec3 hfovxy_focal;
+uniform int sh_dim;
+uniform float scale_modifier;
 
 out vec3 color;
 out float alpha;
@@ -138,12 +146,12 @@ vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, 
 
 void main()
 {
-    float scale_modifier = 1.f;
     vec4 gpos = vec4(g_pos[gl_InstanceID * 3], g_pos[gl_InstanceID * 3 + 1], g_pos[gl_InstanceID * 3 + 2], 1.f);
     vec4 grot = vec4(g_rot[gl_InstanceID * 4], g_rot[gl_InstanceID * 4 + 1], g_rot[gl_InstanceID * 4 + 2], g_rot[gl_InstanceID * 4 + 2]);
-    // vec3 gscale = vec3(g_scale[gl_InstanceID * 3], g_scale[gl_InstanceID * 3 + 1], g_scale[gl_InstanceID * 3 + 2]);
-
-    mat3 cov3d = computeCov3D(g_scale * scale_modifier, grot);
+    vec3 gscale = vec3(g_scale[gl_InstanceID * 3], g_scale[gl_InstanceID * 3 + 1], g_scale[gl_InstanceID * 3 + 2]);
+    vec3 gsh = vec3(g_sh[gl_InstanceID * sh_dim], g_sh[gl_InstanceID * sh_dim + 1], g_sh[gl_InstanceID * sh_dim + 2]);
+	float gopacity = g_opacity[gl_InstanceID];
+    mat3 cov3d = computeCov3D(gscale * scale_modifier, grot);
     vec4 g_pos_view = view_matrix * gpos;
     vec2 wh = 2 * hfovxy_focal.xy * hfovxy_focal.z;
     vec3 cov2d = computeCov2D(g_pos_view, 
@@ -171,6 +179,6 @@ void main()
     coordxy = position * quadwh_scr;
     gl_Position = g_pos_screen;
     
-    color = g_dc_color;
-    alpha = g_opacity;
+    color = gsh;
+    alpha = gopacity;
 }
