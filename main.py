@@ -8,6 +8,7 @@ import imageio
 import util_gau
 import tkinter as tk
 from tkinter import filedialog
+import time
 
 
 g_camera = util.Camera(1000, 1000)
@@ -95,11 +96,15 @@ def main():
     gl.glDisable(gl.GL_CULL_FACE)
     gl.glEnable(gl.GL_BLEND)
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-
+    start = time.time()
+    fps = 0
     while not glfw.window_should_close(window):
         glfw.poll_events()
         impl.process_inputs()
-
+        end = time.time()
+        elapsed_time = end - start + 0.000001
+        fps = 1 / elapsed_time * 0.01 + fps * 0.99
+        start = time.time()
         imgui.new_frame()
         
         gl.glClearColor(0, 0, 0, 1.0)
@@ -116,6 +121,7 @@ def main():
 
         # imgui ui
         if imgui.begin("Control", True):
+            imgui.text(f"fps = {fps:.1f} frame / second")
             if imgui.button(label='open ply'):
                 file_path = filedialog.askopenfilename(title="open ply",
                     initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",

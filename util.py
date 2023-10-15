@@ -141,7 +141,7 @@ def set_attribute_instanced(program, key, value, instance_stride=1, vao=None, bu
     glBindBuffer(GL_ARRAY_BUFFER,0)
     return vao, buffer_id
 
-def set_storage_buffer_data(program, key, value: np.ndarray, bind_idx=None, vao=None, buffer_id=None):
+def set_storage_buffer_data(program, key, value: np.ndarray, bind_idx, vao=None, buffer_id=None):
     glUseProgram(program)
     # if vao is None:  # TODO: if this is really unnecessary?
     #     vao = glGenVertexArrays(1)
@@ -152,9 +152,9 @@ def set_storage_buffer_data(program, key, value: np.ndarray, bind_idx=None, vao=
         buffer_id = glGenBuffers(1)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer_id)
     glBufferData(GL_SHADER_STORAGE_BUFFER, value.nbytes, value.reshape(-1), GL_STATIC_DRAW)
-    pos = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, key)
+    # pos = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, key)  # TODO: ???
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_idx, buffer_id)
-    # glShaderStorageBlockBinding(program, pos, pos)
+    # glShaderStorageBlockBinding(program, pos, pos)  # TODO: ???
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
 def set_faces_tovao(vao, faces: np.ndarray):
