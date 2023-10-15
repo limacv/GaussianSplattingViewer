@@ -5,12 +5,16 @@ import imgui
 import numpy as np
 import util
 import imageio
+import util_gau
+import tkinter as tk
+from tkinter import filedialog
 
 
-camera = util.Camera(500, 500)
+g_camera = util.Camera(1000, 1000)
+g_program = None
 
 def impl_glfw_init():
-    width, height = 500, 500
+    width, height = 1000, 1000
     window_name = "NeUVF editor"
 
     if not glfw.init():
@@ -37,17 +41,24 @@ def impl_glfw_init():
     return window
 
 def cursor_pos_callback(window, xpos, ypos):
-    camera.process_mouse(xpos, ypos)
+    g_camera.process_mouse(xpos, ypos)
 
 def mouse_button_callback(window, button, action, mod):
-    camera.is_leftmouse_pressed = (button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS)
+    g_camera.is_leftmouse_pressed = (button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS)
 
 def main():
+    global g_program, g_camera
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
+    root = tk.Tk()  # used for file dialog
+    root.withdraw()
+    
     glfw.set_cursor_pos_callback(window, cursor_pos_callback)
     glfw.set_mouse_button_callback(window, mouse_button_callback)
+
+    # Load and compile shaders
+    g_program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
 
     # Vertex data for a quad
     quad_v = np.array([
@@ -56,80 +67,29 @@ def main():
         1, -1,
         -1, -1
     ], dtype=np.float32).reshape(4, 2)
-
     quad_f = np.array([
         0, 1, 2,
         0, 2, 3
     ], dtype=np.uint32).reshape(2, 3)
     
     # gaussian data
-    gau_xyz = np.array([
-        0, 0, 0,
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1,
-    ]).astype(np.float32).reshape(-1, 3)
-    gau_rot = np.array([
-        1, 0, 0, 0,
-        1, 0, 0, 0,
-        1, 0, 0, 0,
-        1, 0, 0, 0
-    ]).astype(np.float32).reshape(-1, 4)
-    gau_s = np.array([
-        0.03, 0.03, 0.03,
-        0.2, 0.03, 0.03,
-        0.03, 0.2, 0.03,
-        0.03, 0.03, 0.2
-    ]).astype(np.float32).reshape(-1, 3)
-    gau_c = np.array([
-        1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ]).astype(np.float32).reshape(-1, 48)
-    gau_a = np.array([
-        1, 1, 1, 1
-    ]).astype(np.float32).reshape(-1, 1)
-    num_gau = len(gau_xyz)
-
-    indexing = np.arange(num_gau).astype(np.int32).reshape(-1, 1)
+    # gaussians = util_gau.naive_gaussian()
+    # update_gaussian_data(gaussians)
+    gaussians = util_gau.load_ply("C:\\Users\\MSI_NB\\Downloads\\viewers\\models\\truck\\point_cloud\\iteration_30000\\point_cloud.ply")
+    update_gaussian_data(gaussians)
     
-    # Load and compile shaders
-    program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
-
     # load quad geometry
-    vao, buffer_id = util.set_attributes(program, ["position"], [quad_v])
+    vao, buffer_id = util.set_attributes(g_program, ["position"], [quad_v])
     util.set_faces_tovao(vao, quad_f)
     
-    # load gaussian geometry
-    # util.set_attribute_instanced(program, "g_pos", gau_xyz, vao=vao)
-    # util.set_attribute_instanced(program, "g_rot", gau_rot, vao=vao)
-    # util.set_attribute_instanced(program, "g_scale", gau_s, vao=vao)
-    # util.set_attribute_instanced(program, "g_dc_color", gau_c, vao=vao)
-    # util.set_attribute_instanced(program, "g_opacity", gau_a, vao=vao)
-    gaussian_data = np.concatenate([
-        gau_xyz, gau_rot, gau_s, gau_a, gau_c
-    ], axis=-1)
-    gaussian_data = np.ascontiguousarray(gaussian_data)
-    util.set_storage_buffer_data(program, "gaussian_data", gaussian_data, vao=vao)
-    util.set_storage_buffer_data(program, "gi", indexing, vao=vao)
-    util.set_uniform_1int(program, gau_c.shape[-1], "sh_dim")
-    util.set_uniform_1f(program, 1., "scale_modifier")
-    
-    view_mat = camera.get_view_matrix()
-    proj_mat = camera.get_project_matrix()
-    util.set_uniform_mat4(program, proj_mat, "projection_matrix")
-    util.set_uniform_mat4(program, view_mat, "view_matrix")
-    util.set_uniform_v3(program, camera.position, "cam_pos")
-    util.set_uniform_v3(program, camera.get_htanfovxy_focal(), "hfovxy_focal")
-    
-    # Create position texture for instancing
-    # instance_positions = np.random.rand(1000, 3) * 2.0 - 1.0  # Random positions in [-1, 1]
-    # texture = gl.glGenTextures(1)
-    # gl.glBindTexture(gl.GL_TEXTURE_1D, texture)
-    # gl.glTexImage1D(gl.GL_TEXTURE_1D, 0, gl.GL_RGB, len(instance_positions), 0, gl.GL_RGB, gl.GL_FLOAT, instance_positions)
-    # gl.glTexParameteri(gl.GL_TEXTURE_1D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-    # gl.glTexParameteri(gl.GL_TEXTURE_1D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+    # set uniforms
+    util.set_uniform_1f(g_program, 1., "scale_modifier")
+    view_mat = g_camera.get_view_matrix()
+    proj_mat = g_camera.get_project_matrix()
+    util.set_uniform_mat4(g_program, proj_mat, "projection_matrix")
+    util.set_uniform_mat4(g_program, view_mat, "view_matrix")
+    util.set_uniform_v3(g_program, g_camera.position, "cam_pos")
+    util.set_uniform_v3(g_program, g_camera.get_htanfovxy_focal(), "hfovxy_focal")
     
     # settings
     gl.glDisable(gl.GL_CULL_FACE)
@@ -145,22 +105,31 @@ def main():
         gl.glClearColor(0, 0, 0, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
-        view_mat = camera.get_view_matrix()
-        util.set_uniform_mat4(program, view_mat, "view_matrix")
-        util.set_uniform_v3(program, camera.position, "cam_pos")
+        view_mat = g_camera.get_view_matrix()
+        util.set_uniform_mat4(g_program, view_mat, "view_matrix")
+        util.set_uniform_v3(g_program, g_camera.position, "cam_pos")
 
-        gl.glUseProgram(program)
+        gl.glUseProgram(g_program)
         gl.glBindVertexArray(vao)
+        num_gau = len(gaussians)
         gl.glDrawElementsInstanced(gl.GL_TRIANGLES, len(quad_f.reshape(-1)), gl.GL_UNSIGNED_INT, None, num_gau)
 
         # imgui ui
         if imgui.begin("Control", True):
+            if imgui.button(label='open ply'):
+                file_path = filedialog.askopenfilename(title="open ply",
+                    initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
+                    filetypes=[('ply file', '.ply')]
+                    )
+                if file_path:
+                    gaussians = util_gau.load_ply(file_path)
+                    update_gaussian_data(gaussians)
+                    
             if imgui.button(label='save image'):
                 width, height = glfw.get_framebuffer_size(window)
                 nrChannels = 3;
                 stride = nrChannels * width;
                 stride += (4 - stride % 4) if stride % 4 else 0
-                bufferSize = stride * height;
                 gl.glPixelStorei(gl.GL_PACK_ALIGNMENT, 4)
                 gl.glReadBuffer(gl.GL_FRONT)
                 bufferdata = gl.glReadPixels(0, 0, width, height, gl.GL_RGB, gl.GL_UNSIGNED_BYTE)
@@ -170,14 +139,14 @@ def main():
                 # save intermediate information
                 np.savez(
                     "save.npz",
-                    gau_xyz=gau_xyz,
-                    gau_s=gau_s,
-                    gau_rot=gau_rot,
-                    gau_c=gau_c,
-                    gau_a=gau_a,
-                    viewmat=camera.get_view_matrix(),
-                    projmat=camera.get_project_matrix(),
-                    hfovxyfocal=camera.get_htanfovxy_focal()
+                    gau_xyz=gaussians.xyz,
+                    gau_s=gaussians.scale,
+                    gau_rot=gaussians.rot,
+                    gau_c=gaussians.sh,
+                    gau_a=gaussians.opacity,
+                    viewmat=g_camera.get_view_matrix(),
+                    projmat=g_camera.get_project_matrix(),
+                    hfovxyfocal=g_camera.get_htanfovxy_focal()
                 )
             imgui.end()
 
@@ -187,6 +156,16 @@ def main():
 
     impl.shutdown()
     glfw.terminate()
+
+
+def update_gaussian_data(gaus):
+    # load gaussian geometry
+    num_gau = len(gaus)
+    gaussian_data = gaus.flat()
+    util.set_storage_buffer_data(g_program, "gaussian_data", gaussian_data, bind_idx=0)
+    indexing = np.arange(num_gau).astype(np.int32).reshape(-1, 1)
+    util.set_storage_buffer_data(g_program, "gi", indexing, bind_idx=1)
+    util.set_uniform_1int(g_program, gaus.sh_dim, "sh_dim")
 
 if __name__ == "__main__":
     main()
