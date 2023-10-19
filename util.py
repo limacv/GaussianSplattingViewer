@@ -13,15 +13,26 @@ class Camera:
         self.fovy = np.pi / 2
         self.position = np.array([0.0, 0.0, 3.0])
         self.target = np.array([0.0, 0.0, 0.0])
-        self.up = np.array([0.0, 1.0, 0.0])
+        self.up = np.array([0.0, -1.0, 0.0])
         self.yaw = -np.pi / 2
         self.pitch = 0
+        
+        self.is_pose_dirty = True
+        self.is_intrin_dirty = True
         
         self.last_x = 640
         self.last_y = 360
         self.first_mouse = True
         
         self.is_leftmouse_pressed = False
+        self.is_rightmouse_pressed = False
+    
+    def _global_rot_mat(self):
+        x = np.array([1, 0, 0])
+        z = np.cross(x, self.up)
+        z = z / np.linalg.norm(z)
+        x = np.cross(self.up, z)
+        return np.stack([x, self.up, z], axis=-1)
 
     def get_view_matrix(self):
         return np.array(glm.lookAt(self.position, self.target, self.up))
@@ -45,11 +56,6 @@ class Camera:
         return self.h / (2 * np.tan(self.fovy / 2))
 
     def process_mouse(self, xpos, ypos):
-        if not self.is_leftmouse_pressed:
-            self.last_x = xpos
-            self.last_y = ypos
-            return
-        
         if self.first_mouse:
             self.last_x = xpos
             self.last_y = ypos
@@ -60,19 +66,42 @@ class Camera:
         self.last_x = xpos
         self.last_y = ypos
 
-        sensitivity = 0.02
-        xoffset *= sensitivity
-        yoffset *= sensitivity
+        if self.is_leftmouse_pressed:
+            sensitivity = 0.02
+            self.yaw += xoffset * sensitivity
+            self.pitch += yoffset * sensitivity
 
-        self.yaw += xoffset
-        self.pitch += yoffset
+            self.pitch = np.clip(self.pitch, -np.pi / 2, np.pi / 2)
 
-        self.pitch = np.clip(self.pitch, -np.pi / 2, np.pi / 2)
-
-        front = np.array([np.cos(self.yaw) * np.cos(self.pitch), 
-                          np.sin(self.pitch), np.sin(self.yaw) * 
-                          np.cos(self.pitch)])
-        self.position[:] = - front * np.linalg.norm(self.position - self.target) + self.target
+            front = np.array([np.cos(self.yaw) * np.cos(self.pitch), 
+                            np.sin(self.pitch), np.sin(self.yaw) * 
+                            np.cos(self.pitch)])
+            front = self._global_rot_mat() @ front.reshape(3, 1)
+            front = front[:, 0]
+            self.position[:] = - front * np.linalg.norm(self.position - self.target) + self.target
+            
+            self.is_pose_dirty = True
+        
+        if self.is_rightmouse_pressed:
+            sensitivity = 0.01
+            front = self.target - self.position
+            front = front / np.linalg.norm(front)
+            right = np.cross(self.up, front)
+            self.position += right * xoffset * sensitivity
+            self.target += right * xoffset * sensitivity
+            cam_up = np.cross(right, front)
+            self.position += cam_up * yoffset * sensitivity
+            self.target += cam_up * yoffset * sensitivity
+            
+            self.is_pose_dirty = True
+        
+    def process_wheel(self, dx, dy):
+        sensitivity = 0.08
+        front = self.target - self.position
+        front = front / np.linalg.norm(front)
+        self.position += front * dy * sensitivity
+        self.target += front * dy * sensitivity
+        self.is_pose_dirty = True
 
 def load_shaders(vs, fs):
     vertex_shader = open(vs, 'r').read()        
