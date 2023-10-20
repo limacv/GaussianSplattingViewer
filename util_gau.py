@@ -79,6 +79,7 @@ def load_ply(path):
         features_extra[:, idx] = np.asarray(plydata.elements[0][attr_name])
     # Reshape (P,F*SH_coeffs) to (P, F, SH_coeffs except DC)
     features_extra = features_extra.reshape((features_extra.shape[0], 3, (max_sh_degree + 1) ** 2 - 1))
+    features_extra = np.transpose(features_extra, [0, 2, 1])
 
     scale_names = [p.name for p in plydata.elements[0].properties if p.name.startswith("scale_")]
     scale_names = sorted(scale_names, key = lambda x: int(x.split('_')[-1]))

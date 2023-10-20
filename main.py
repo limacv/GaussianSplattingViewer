@@ -35,6 +35,7 @@ def impl_glfw_init():
         int(width), int(height), window_name, None, None
     )
     glfw.make_context_current(window)
+    glfw.swap_interval(0)
     # glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_NORMAL);
     if not window:
         glfw.terminate()
@@ -201,7 +202,7 @@ def main():
         
         end = time.time()
         fps_cur = 1 / (end - start) if end > start else fps
-        fps = fps_cur * 0.02 + fps * 0.98
+        fps = fps_cur * 1 / fps + fps * (1 - 1 / fps)
 
     impl.shutdown()
     glfw.terminate()
