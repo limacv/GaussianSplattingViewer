@@ -10,8 +10,8 @@ import tkinter as tk
 from tkinter import filedialog
 import time
 
-
-g_camera = util.Camera(1000, 1000)
+g_width, g_height = 1000, 1000
+g_camera = util.Camera(g_height, g_width)
 g_program = None
 g_scale_modifier = 1.
 g_auto_sort = False
@@ -19,7 +19,6 @@ g_show_control_win = True
 g_show_help_win = True
 
 def impl_glfw_init():
-    width, height = 1000, 1000
     window_name = "NeUVF editor"
 
     if not glfw.init():
@@ -34,7 +33,7 @@ def impl_glfw_init():
     # Create a windowed mode window and its OpenGL context
     global window
     window = glfw.create_window(
-        int(width), int(height), window_name, None, None
+        int(g_width), int(g_height), window_name, None, None
     )
     glfw.make_context_current(window)
     glfw.swap_interval(0)

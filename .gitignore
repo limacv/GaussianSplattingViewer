@@ -3,3 +3,4 @@ __pycache__
 *.npz
 *.ini
 *.dump
+_example.py
