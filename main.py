@@ -15,6 +15,8 @@ g_camera = util.Camera(1000, 1000)
 g_program = None
 g_scale_modifier = 1.
 g_auto_sort = False
+g_show_control_win = True
+g_show_help_win = True
 
 def impl_glfw_init():
     width, height = 1000, 1000
@@ -74,7 +76,7 @@ def update_camera_intrin():
 
 
 def main():
-    global g_program, g_camera, g_scale_modifier, g_auto_sort
+    global g_program, g_camera, g_scale_modifier, g_auto_sort, g_show_control_win, g_show_help_win
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
@@ -136,73 +138,97 @@ def main():
         gl.glDrawElementsInstanced(gl.GL_TRIANGLES, len(quad_f.reshape(-1)), gl.GL_UNSIGNED_INT, None, num_gau)
 
         # imgui ui
-        if imgui.begin("Control", True):
-            imgui.text(f"fps = {fps:.1f} frame / second")
-            if imgui.button(label='open ply'):
-                file_path = filedialog.askopenfilename(title="open ply",
-                    initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
-                    filetypes=[('ply file', '.ply')]
-                    )
-                if file_path:
-                    try:
-                        gaussians = util_gau.load_ply(file_path)
-                        update_gaussian_data(gaussians)
-                    except RuntimeError as e:
-                        pass
-            
-            changed, g_scale_modifier = imgui.slider_float(
-                "scale modifier", g_scale_modifier, 0.1, 10, "scale = %.3f"
-            )
-            if changed:
-                util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
-            
-            changed, g_camera.fovy = imgui.slider_float(
-                "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
-            )
-            g_camera.is_intrin_dirty = changed
-            update_camera_intrin()
-            
-            if imgui.button(label='sort Gaussians'):
-                sort_gaussian(gaussians)
-            imgui.same_line()
-            changed, g_auto_sort = imgui.checkbox(
-                    "auto sort", g_auto_sort,
+        if imgui.begin_main_menu_bar():
+            if imgui.begin_menu("Window", True):
+                clicked, g_show_control_win = imgui.menu_item(
+                    "Show Control", None, g_show_control_win
                 )
-            if g_auto_sort:
-                sort_gaussian(gaussians)
-            
-            if imgui.button(label='save image'):
-                width, height = glfw.get_framebuffer_size(window)
-                nrChannels = 3;
-                stride = nrChannels * width;
-                stride += (4 - stride % 4) if stride % 4 else 0
-                gl.glPixelStorei(gl.GL_PACK_ALIGNMENT, 4)
-                gl.glReadBuffer(gl.GL_FRONT)
-                bufferdata = gl.glReadPixels(0, 0, width, height, gl.GL_RGB, gl.GL_UNSIGNED_BYTE)
-                img = np.frombuffer(bufferdata, np.uint8, -1).reshape(height, width, 3)
-                imageio.imwrite("save.png", img[::-1])
+                clicked, g_show_help_win = imgui.menu_item(
+                    "Show Help", None, g_show_help_win
+                )
+                imgui.end_menu()
+            imgui.end_main_menu_bar()
+        
+        if g_show_control_win:
+            if imgui.begin("Control", True):
+                imgui.text(f"fps = {fps:.1f} frame / second")
+                if imgui.button(label='open ply'):
+                    file_path = filedialog.askopenfilename(title="open ply",
+                        initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
+                        filetypes=[('ply file', '.ply')]
+                        )
+                    if file_path:
+                        try:
+                            gaussians = util_gau.load_ply(file_path)
+                            update_gaussian_data(gaussians)
+                        except RuntimeError as e:
+                            pass
                 
-                # save intermediate information
-                np.savez(
-                    "save.npz",
-                    gau_xyz=gaussians.xyz,
-                    gau_s=gaussians.scale,
-                    gau_rot=gaussians.rot,
-                    gau_c=gaussians.sh,
-                    gau_a=gaussians.opacity,
-                    viewmat=g_camera.get_view_matrix(),
-                    projmat=g_camera.get_project_matrix(),
-                    hfovxyfocal=g_camera.get_htanfovxy_focal()
+                changed, g_scale_modifier = imgui.slider_float(
+                    "", g_scale_modifier, 0.1, 10, "scale modifier = %.3f"
                 )
-            imgui.end()
+                imgui.same_line()
+                if imgui.button(label="reset"):
+                    g_scale_modifier = 1.
+                    changed = True
+                    
+                if changed:
+                    util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
+                
+                changed, g_camera.fovy = imgui.slider_float(
+                    "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
+                )
+                g_camera.is_intrin_dirty = changed
+                update_camera_intrin()
+                
+                if imgui.button(label='sort Gaussians'):
+                    sort_gaussian(gaussians)
+                imgui.same_line()
+                changed, g_auto_sort = imgui.checkbox(
+                        "auto sort", g_auto_sort,
+                    )
+                if g_auto_sort:
+                    sort_gaussian(gaussians)
+                
+                if imgui.button(label='save image'):
+                    width, height = glfw.get_framebuffer_size(window)
+                    nrChannels = 3;
+                    stride = nrChannels * width;
+                    stride += (4 - stride % 4) if stride % 4 else 0
+                    gl.glPixelStorei(gl.GL_PACK_ALIGNMENT, 4)
+                    gl.glReadBuffer(gl.GL_FRONT)
+                    bufferdata = gl.glReadPixels(0, 0, width, height, gl.GL_RGB, gl.GL_UNSIGNED_BYTE)
+                    img = np.frombuffer(bufferdata, np.uint8, -1).reshape(height, width, 3)
+                    imageio.imwrite("save.png", img[::-1])
+                    # save intermediate information
+                    # np.savez(
+                    #     "save.npz",
+                    #     gau_xyz=gaussians.xyz,
+                    #     gau_s=gaussians.scale,
+                    #     gau_rot=gaussians.rot,
+                    #     gau_c=gaussians.sh,
+                    #     gau_a=gaussians.opacity,
+                    #     viewmat=g_camera.get_view_matrix(),
+                    #     projmat=g_camera.get_project_matrix(),
+                    #     hfovxyfocal=g_camera.get_htanfovxy_focal()
+                    # )
+                imgui.end()
 
+        if g_show_help_win:
+            imgui.begin("Help", True)
+            imgui.text("Use left click & move to rotate view")
+            imgui.text("Use right click & move to translate view")
+            imgui.text("Use scroll to zoom in/out")
+            imgui.text("Use control panel to change setting")
+            imgui.end()
+        
         imgui.render()
         impl.render(imgui.get_draw_data())
         glfw.swap_buffers(window)
         
         end = time.time()
         fps_cur = 1 / (end - start) if end > start else fps
-        fps = fps_cur * 1 / fps + fps * (1 - 1 / fps)
+        fps = fps_cur * 0.2 + fps * 0.8
 
     impl.shutdown()
     glfw.terminate()
