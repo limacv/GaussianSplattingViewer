@@ -28,8 +28,9 @@ Therefore, download pretrained Gaussian PLY file from [this official link](https
 
 # TODO
 - Better camera controls
+- More shading options (depth, billboard visualization, gaussian surface renderer)
+- Controls of SH degree
 - Window size change callback, currently the window size is baked in. to change window size, change `g_width` and `g_height` in the `main.py`.
 - Tighter billboard to reduce number of fragments
 - Benchmark the rendering w/ official implementation.
 - Better sorting implementation.
-  
