@@ -110,7 +110,6 @@ class Camera:
         right = np.cross(front, self.up)
         new_up = self.up + right * (d * self.roll_sensitivity / np.linalg.norm(right))
         self.up = new_up / np.linalg.norm(new_up)
-        print(self.up)
         self.is_pose_dirty = True
 
 def load_shaders(vs, fs):

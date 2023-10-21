@@ -50,6 +50,7 @@ uniform vec3 hfovxy_focal;
 uniform vec3 cam_pos;
 uniform int sh_dim;
 uniform float scale_modifier;
+uniform int render_mod;  // > 0 render 0-ith SH dim, -1 depth, -2 bill board, -3 gaussian
 
 out vec3 color;
 out float alpha;
@@ -122,8 +123,10 @@ void main()
 	vec4 g_pos = vec4(get_vec3(start + POS_IDX), 1.f);
     vec4 g_pos_view = view_matrix * g_pos;
     vec4 g_pos_screen = projection_matrix * g_pos_view;
+	g_pos_screen.xyz = g_pos_screen.xyz / g_pos_screen.w;
+    g_pos_screen.w = 1.f;
 	// early culling
-	if (any(greaterThan(abs(g_pos_screen.xyz / (g_pos_screen.w + 0.0000001f)), vec3(1.3))))
+	if (any(greaterThan(abs(g_pos_screen.xyz), vec3(1.3))))
 	{
 		gl_Position = vec4(-100, -100, -100, 1);
 		return;
@@ -152,13 +155,20 @@ void main()
     
     vec2 quadwh_scr = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
     vec2 quadwh_ndc = quadwh_scr / wh * 2;  // in ndc space
-    g_pos_screen.xyz = g_pos_screen.xyz / g_pos_screen.w;
-    g_pos_screen.w = 1.f;
     g_pos_screen.xy = g_pos_screen.xy + position * quadwh_ndc;
     coordxy = position * quadwh_scr;
     gl_Position = g_pos_screen;
     
     alpha = g_opacity;
+
+	if (render_mod == -1)
+	{
+		float depth = -g_pos_view.z;
+		depth = depth < 0.05 ? 1 : depth;
+		depth = 1 / depth;
+		color = vec3(depth, depth, depth);
+		return;
+	}
 
 	// Covert SH to color
 	int sh_start = start + SH_IDX;
@@ -166,14 +176,14 @@ void main()
     dir = normalize(dir);
 	color = SH_C0 * get_vec3(sh_start);
 	
-	if (sh_dim > 3)  // 1 * 3
+	if (sh_dim > 3 && render_mod >= 1)  // 1 * 3
 	{
 		float x = dir.x;
 		float y = dir.y;
 		float z = dir.z;
 		color = color - SH_C1 * y * get_vec3(sh_start + 1 * 3) + SH_C1 * z * get_vec3(sh_start + 2 * 3) - SH_C1 * x * get_vec3(sh_start + 3 * 3);
 
-		if (sh_dim > 12)  // (1 + 3) * 3
+		if (sh_dim > 12 && render_mod >= 2)  // (1 + 3) * 3
 		{
 			float xx = x * x, yy = y * y, zz = z * z;
 			float xy = x * y, yz = y * z, xz = x * z;
@@ -184,7 +194,7 @@ void main()
 				SH_C2_3 * xz * get_vec3(sh_start + 7 * 3) +
 				SH_C2_4 * (xx - yy) * get_vec3(sh_start + 8 * 3);
 
-			if (sh_dim > 27)  // (1 + 3 + 5) * 3
+			if (sh_dim > 27 && render_mod >= 3)  // (1 + 3 + 5) * 3
 			{
 				color = color +
 					SH_C3_0 * y * (3.0f * xx - yy) * get_vec3(sh_start + 9 * 3) +

@@ -17,6 +17,8 @@ g_scale_modifier = 1.
 g_auto_sort = False
 g_show_control_win = True
 g_show_help_win = True
+g_render_mode_tables = ["Gaussian Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
+g_render_mode = 6
 
 def impl_glfw_init():
     window_name = "NeUVF editor"
@@ -59,7 +61,7 @@ def wheel_callback(window, dx, dy):
     g_camera.process_wheel(dx, dy)
 
 def key_callback(window, key, scancode, action, mods):
-    if action == glfw.REPEAT:
+    if action == glfw.REPEAT or action == glfw.PRESS:
         if key == glfw.KEY_Q:
             g_camera.process_roll_key(1)
         elif key == glfw.KEY_E:
@@ -81,7 +83,10 @@ def update_camera_intrin():
 
 
 def main():
-    global g_program, g_camera, g_scale_modifier, g_auto_sort, g_show_control_win, g_show_help_win
+    global g_program, g_camera, g_scale_modifier, g_auto_sort, \
+        g_show_control_win, g_show_help_win, \
+        g_render_mode, g_render_mode_tables
+        
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
@@ -118,6 +123,7 @@ def main():
     
     # set uniforms
     util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
+    util.set_uniform_1int(g_program, g_render_mode - 3, "render_mod")
     update_camera_pose()
     update_camera_intrin()
     
@@ -157,7 +163,8 @@ def main():
         
         if g_show_control_win:
             if imgui.begin("Control", True):
-                imgui.text(f"fps = {fps:.1f} frame / second")
+                imgui.text(f"fps = {fps:.1f}")
+                imgui.text(f"# of Gaus = {num_gau}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
                         initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
@@ -170,6 +177,14 @@ def main():
                         except RuntimeError as e:
                             pass
                 
+                # camera fov
+                changed, g_camera.fovy = imgui.slider_float(
+                    "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
+                )
+                g_camera.is_intrin_dirty = changed
+                update_camera_intrin()
+                
+                # scale modifier
                 changed, g_scale_modifier = imgui.slider_float(
                     "", g_scale_modifier, 0.1, 10, "scale modifier = %.3f"
                 )
@@ -181,12 +196,12 @@ def main():
                 if changed:
                     util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
                 
-                changed, g_camera.fovy = imgui.slider_float(
-                    "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
-                )
-                g_camera.is_intrin_dirty = changed
-                update_camera_intrin()
+                # render mode
+                changed, g_render_mode = imgui.combo("shading", g_render_mode, g_render_mode_tables)
+                if changed:
+                    util.set_uniform_1int(g_program, g_render_mode - 3, "render_mod")
                 
+                # sort button
                 if imgui.button(label='sort Gaussians'):
                     sort_gaussian(gaussians)
                 imgui.same_line()
