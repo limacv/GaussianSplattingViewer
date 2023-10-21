@@ -299,28 +299,3 @@ def update_texture2d(img, texid, offset):
     )
 
 
-LEFT_EYE = [21, 25, 28, 31, 39, 40]
-RIGHT_EYE = [22, 24, 29, 30, 34, 37]
-NOSE = [12, 27, 33, 43, 49, 57, 56, 54, 55, 53]
-MOUTH = [66, 67, 68, 71, 70, 75, 78, 79]
-LEFT_EYEBROW = [14, 10, 8, 13, 17]
-RIGHT_EYEBROW = [15, 11, 9, 16, 18]
-FACE_OUT = [2, 0, 4, 7, 23, 48, 58, 69, 80, 88, 93, 90, 89,
-            3, 1, 5, 6, 26, 44, 65, 74, 82, 87, 92, 94, 91, 95]
-FACE_IN = [19, 36, 45, 59, 76, 81, 83,
-           20, 35, 52, 64, 77, 85, 84, 86,
-           60, 46, 32, 50, 61, 41, 72,
-           63, 47, 38, 51, 62, 42, 73]
-
-def get_colors():
-    color = np.zeros((96, 3), dtype=np.uint8)
-    color[LEFT_EYE] = (52, 152, 219)
-    color[RIGHT_EYE] = (41, 128, 185)
-    color[NOSE] = (230, 126, 34)
-    color[MOUTH] = (192, 57, 43)
-    color[LEFT_EYEBROW] = (253, 121, 168)
-    color[RIGHT_EYEBROW] = (232, 67, 147)
-    color[FACE_OUT] = (108, 92, 231)
-    color[FACE_IN] = (46, 204, 113)
-    return (color / 255).astype(np.float32)
-
