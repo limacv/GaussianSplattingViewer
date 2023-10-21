@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import filedialog
 import time
 
-g_width, g_height = 1000, 1000
+g_width, g_height = 1280, 720
 g_camera = util.Camera(g_height, g_width)
 g_program = None
 g_scale_modifier = 1.
@@ -215,6 +215,7 @@ def main():
 
         if g_show_help_win:
             imgui.begin("Help", True)
+            imgui.text("Open Gaussian Splatting PLY file \n  by click 'open ply' button")
             imgui.text("Use left click & move to rotate view")
             imgui.text("Use right click & move to translate view")
             imgui.text("Use scroll to zoom in/out")
@@ -248,9 +249,7 @@ def update_gaussian_data(gaus):
     num_gau = len(gaus)
     gaussian_data = gaus.flat()
     util.set_storage_buffer_data(g_program, "gaussian_data", gaussian_data, bind_idx=0)
-    indexing = np.arange(num_gau).astype(np.int32).reshape(-1, 1)
-    indexing = np.random.permutation(num_gau).astype(np.int32).reshape(-1, 1)
-    util.set_storage_buffer_data(g_program, "gi", indexing, bind_idx=1)
+    sort_gaussian(gaus)
     util.set_uniform_1int(g_program, gaus.sh_dim, "sh_dim")
 
 if __name__ == "__main__":
