@@ -11,6 +11,7 @@ from tkinter import filedialog
 import time
 import os
 import sys
+import argparse
 
 # Add the directory containing main.py to the Python path
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -101,6 +102,8 @@ def main():
         g_render_mode, g_render_mode_tables
         
     imgui.create_context()
+    if args.hidpi:
+        imgui.get_io().font_global_scale = 1.5
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
     root = tk.Tk()  # used for file dialog
@@ -291,4 +294,9 @@ def update_gaussian_data(gaus):
     util.set_uniform_1int(g_program, gaus.sh_dim, "sh_dim")
 
 if __name__ == "__main__":
+    global args
+    parser = argparse.ArgumentParser(description="NeUVF editor with optional HiDPI support.")
+    parser.add_argument("--hidpi", action="store_true", help="Enable HiDPI scaling for the interface.")
+    args = parser.parse_args()
+
     main()
