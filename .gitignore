@@ -4,3 +4,5 @@ __pycache__
 *.ini
 *.dump
 _example.py
+text.py
+toy_cuda_gs.py
