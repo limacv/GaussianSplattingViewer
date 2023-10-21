@@ -58,6 +58,12 @@ def mouse_button_callback(window, button, action, mod):
 def wheel_callback(window, dx, dy):
     g_camera.process_wheel(dx, dy)
 
+def key_callback(window, key, scancode, action, mods):
+    if action == glfw.REPEAT:
+        if key == glfw.KEY_Q:
+            g_camera.process_roll_key(1)
+        elif key == glfw.KEY_E:
+            g_camera.process_roll_key(-1)
 
 def update_camera_pose():
     if g_camera.is_pose_dirty:
@@ -85,6 +91,7 @@ def main():
     glfw.set_cursor_pos_callback(window, cursor_pos_callback)
     glfw.set_mouse_button_callback(window, mouse_button_callback)
     glfw.set_scroll_callback(window, wheel_callback)
+    glfw.set_key_callback(window, key_callback)
 
     # Load and compile shaders
     g_program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
@@ -216,8 +223,9 @@ def main():
         if g_show_help_win:
             imgui.begin("Help", True)
             imgui.text("Open Gaussian Splatting PLY file \n  by click 'open ply' button")
-            imgui.text("Use left click & move to rotate view")
-            imgui.text("Use right click & move to translate view")
+            imgui.text("Use left click & move to rotate camera")
+            imgui.text("Use right click & move to translate camera")
+            imgui.text("Press Q/E to roll camera")
             imgui.text("Use scroll to zoom in/out")
             imgui.text("Use control panel to change setting")
             imgui.end()

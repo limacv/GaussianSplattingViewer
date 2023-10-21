@@ -26,6 +26,11 @@ class Camera:
         
         self.is_leftmouse_pressed = False
         self.is_rightmouse_pressed = False
+        
+        self.rot_sensitivity = 0.02
+        self.trans_sensitivity = 0.01
+        self.zoom_sensitivity = 0.08
+        self.roll_sensitivity = 0.03
     
     def _global_rot_mat(self):
         x = np.array([1, 0, 0])
@@ -67,9 +72,8 @@ class Camera:
         self.last_y = ypos
 
         if self.is_leftmouse_pressed:
-            sensitivity = 0.02
-            self.yaw += xoffset * sensitivity
-            self.pitch += yoffset * sensitivity
+            self.yaw += xoffset * self.rot_sensitivity
+            self.pitch += yoffset * self.rot_sensitivity
 
             self.pitch = np.clip(self.pitch, -np.pi / 2, np.pi / 2)
 
@@ -83,24 +87,30 @@ class Camera:
             self.is_pose_dirty = True
         
         if self.is_rightmouse_pressed:
-            sensitivity = 0.01
             front = self.target - self.position
             front = front / np.linalg.norm(front)
             right = np.cross(self.up, front)
-            self.position += right * xoffset * sensitivity
-            self.target += right * xoffset * sensitivity
+            self.position += right * xoffset * self.trans_sensitivity
+            self.target += right * xoffset * self.trans_sensitivity
             cam_up = np.cross(right, front)
-            self.position += cam_up * yoffset * sensitivity
-            self.target += cam_up * yoffset * sensitivity
+            self.position += cam_up * yoffset * self.trans_sensitivity
+            self.target += cam_up * yoffset * self.trans_sensitivity
             
             self.is_pose_dirty = True
         
     def process_wheel(self, dx, dy):
-        sensitivity = 0.08
         front = self.target - self.position
         front = front / np.linalg.norm(front)
-        self.position += front * dy * sensitivity
-        self.target += front * dy * sensitivity
+        self.position += front * dy * self.zoom_sensitivity
+        self.target += front * dy * self.zoom_sensitivity
+        self.is_pose_dirty = True
+        
+    def process_roll_key(self, d):
+        front = self.target - self.position
+        right = np.cross(front, self.up)
+        new_up = self.up + right * (d * self.roll_sensitivity / np.linalg.norm(right))
+        self.up = new_up / np.linalg.norm(new_up)
+        print(self.up)
         self.is_pose_dirty = True
 
 def load_shaders(vs, fs):
