@@ -91,6 +91,9 @@ def update_camera_intrin():
         util.set_uniform_v3(g_program, g_camera.get_htanfovxy_focal(), "hfovxy_focal")
         g_camera.is_intrin_dirty = False
 
+def window_resize_callback(window, width, height):
+    gl.glViewport(0, 0, width, height)
+    g_camera.update_resolution(height, width)
 
 def main():
     global g_program, g_camera, g_scale_modifier, g_auto_sort, \
@@ -107,6 +110,8 @@ def main():
     glfw.set_mouse_button_callback(window, mouse_button_callback)
     glfw.set_scroll_callback(window, wheel_callback)
     glfw.set_key_callback(window, key_callback)
+    
+    glfw.set_window_size_callback(window, window_resize_callback)
 
     # Load and compile shaders
     g_program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
