@@ -1,8 +1,7 @@
-# Simple Gaussian Splatting Viewer
+# Tiny Gaussian Splatting Viewer
 ![UI demo](teaser.png)
-This is a simple PyOpenGL based Gaussian Splatting Viewer. 
-It's easy to install with minimum dependencies. 
-The goal of this project is to provide a minimum example of the viewer for research and study purpose.
+This is a simple Gaussian Splatting Viewer built with PyOpenGL. It's easy to install with minimum dependencies. The goal of this project is to provide a minimum example of the viewer for research and study purpose. 
+
 
 # Usage
 Install the dependencies:
@@ -10,7 +9,7 @@ Install the dependencies:
 pip install -r requirements.txt
 ```
 
-Start viewer:
+Launch the viewer:
 ```
 python main.py
 ```
@@ -18,16 +17,19 @@ python main.py
 Check how to use UI in the "help" panel.
 
 The Gaussian file loader is compatiable with the official implementation. 
-Therefore, download pretrain Gaussian PLY file from [this official link](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip), and select the "point_cloud.ply" you like by clicking 'open ply' button, and you are good to go!
+Therefore, download pretrained Gaussian PLY file from [this official link](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip), and select the "point_cloud.ply" you like by clicking the 'open ply' button, and you are all set!
+
 
 # Limitations
-- The implementation depends on SSBO, which is only support by OpenGL version >= 4.3. This is a widely support version except for MacOS. Therefore, runing on MacOS is not supported.
+- The implementation utilizes SSBO, which is only support by OpenGL version >= 4.3. Although this version is widely adopted, MacOS is an exception. As a result, this viewer does not support MacOS.
 
-- Currently the Gaussian sorting uses numpy argsort, which is not very efficient. So there is a button to manually toggle sorting. However it's interesting to see what it looks like when the gaussian is wrongly sorted.
+- Currently, the sorting of the Gaussians uses numpy `argsort`, which is not very efficient. So there is a button to manually toggle sorting. However it's interesting to see what it looks like when the gaussian is wrongly sorted.
+
 
 # TODO
 - Better camera controls
-- Window size change callback, currently the window size is baked in. to change window size, change `g_width` and `g_height` in the main.py.
+- Window size change callback, currently the window size is baked in. to change window size, change `g_width` and `g_height` in the `main.py`.
 - Tighter billboard to reduce number of fragments
 - Benchmark the rendering w/ official implementation.
 - Better sorting implementation.
+  
