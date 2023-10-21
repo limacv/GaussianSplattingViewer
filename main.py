@@ -9,6 +9,16 @@ import util_gau
 import tkinter as tk
 from tkinter import filedialog
 import time
+import os
+import sys
+
+# Add the directory containing main.py to the Python path
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dir_path)
+
+# Change the current working directory to the script's directory
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 
 g_width, g_height = 1280, 720
 g_camera = util.Camera(g_height, g_width)
