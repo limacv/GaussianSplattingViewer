@@ -9,6 +9,17 @@ import util_gau
 import tkinter as tk
 from tkinter import filedialog
 import time
+import os
+import sys
+import argparse
+
+# Add the directory containing main.py to the Python path
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dir_path)
+
+# Change the current working directory to the script's directory
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 
 g_width, g_height = 1280, 720
 g_camera = util.Camera(g_height, g_width)
@@ -81,6 +92,9 @@ def update_camera_intrin():
         util.set_uniform_v3(g_program, g_camera.get_htanfovxy_focal(), "hfovxy_focal")
         g_camera.is_intrin_dirty = False
 
+def window_resize_callback(window, width, height):
+    gl.glViewport(0, 0, width, height)
+    g_camera.update_resolution(height, width)
 
 def main():
     global g_program, g_camera, g_scale_modifier, g_auto_sort, \
@@ -88,6 +102,8 @@ def main():
         g_render_mode, g_render_mode_tables
         
     imgui.create_context()
+    if args.hidpi:
+        imgui.get_io().font_global_scale = 1.5
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
     root = tk.Tk()  # used for file dialog
@@ -97,6 +113,8 @@ def main():
     glfw.set_mouse_button_callback(window, mouse_button_callback)
     glfw.set_scroll_callback(window, wheel_callback)
     glfw.set_key_callback(window, key_callback)
+    
+    glfw.set_window_size_callback(window, window_resize_callback)
 
     # Load and compile shaders
     g_program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
@@ -276,4 +294,9 @@ def update_gaussian_data(gaus):
     util.set_uniform_1int(g_program, gaus.sh_dim, "sh_dim")
 
 if __name__ == "__main__":
+    global args
+    parser = argparse.ArgumentParser(description="NeUVF editor with optional HiDPI support.")
+    parser.add_argument("--hidpi", action="store_true", help="Enable HiDPI scaling for the interface.")
+    args = parser.parse_args()
+
     main()

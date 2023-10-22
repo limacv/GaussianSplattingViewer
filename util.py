@@ -111,6 +111,12 @@ class Camera:
         new_up = self.up + right * (d * self.roll_sensitivity / np.linalg.norm(right))
         self.up = new_up / np.linalg.norm(new_up)
         self.is_pose_dirty = True
+        
+    def update_resolution(self, height, width):
+        self.h = height
+        self.w = width
+        self.is_intrin_dirty = True
+
 
 def load_shaders(vs, fs):
     vertex_shader = open(vs, 'r').read()        
