@@ -3,3 +3,4 @@ PyGLM
 imgui
 PyOpenGL
 numpy
+imageio
