@@ -8,7 +8,6 @@ import imageio
 import util_gau
 import tkinter as tk
 from tkinter import filedialog
-import time
 import os
 import sys
 import argparse
@@ -149,11 +148,9 @@ def main():
     gl.glDisable(gl.GL_CULL_FACE)
     gl.glEnable(gl.GL_BLEND)
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-    fps = 40
     while not glfw.window_should_close(window):
         glfw.poll_events()
         impl.process_inputs()
-        start = time.time()
         imgui.new_frame()
         
         gl.glClearColor(0, 0, 0, 1.0)
@@ -181,7 +178,7 @@ def main():
         
         if g_show_control_win:
             if imgui.begin("Control", True):
-                imgui.text(f"fps = {fps:.1f}")
+                imgui.text(f"fps = {imgui.get_io().framerate:.1f}")
                 imgui.text(f"# of Gaus = {num_gau}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
@@ -266,10 +263,6 @@ def main():
         imgui.render()
         impl.render(imgui.get_draw_data())
         glfw.swap_buffers(window)
-        
-        end = time.time()
-        fps_cur = 1 / (end - start) if end > start else fps
-        fps = fps_cur * 0.2 + fps * 0.8
 
     impl.shutdown()
     glfw.terminate()
