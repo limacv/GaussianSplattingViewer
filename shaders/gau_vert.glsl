@@ -79,17 +79,10 @@ mat3 computeCov3D(vec3 scale, vec4 q)  // should be correct
     return Sigma;
 }
 
-vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, float tan_fovy, mat3 cov3D, mat4 viewmatrix)
+vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, mat3 cov3D, mat4 viewmatrix)
 {
     vec4 t = mean_view;
-    // why need this? Try remove this later
-    float limx = 1.3f * tan_fovx;
-    float limy = 1.3f * tan_fovy;
-    float txtz = t.x / t.z;
-    float tytz = t.y / t.z;
-    t.x = min(limx, max(-limx, txtz)) * t.z;
-    t.y = min(limy, max(-limy, tytz)) * t.z;
-
+	
     mat3 J = mat3(
         focal_x / t.z, 0.0f, -(focal_x * t.x) / (t.z * t.z),
 		0.0f, focal_y / t.z, -(focal_y * t.y) / (t.z * t.z),
@@ -140,8 +133,6 @@ void main()
     vec3 cov2d = computeCov2D(g_pos_view, 
                               hfovxy_focal.z, 
                               hfovxy_focal.z, 
-                              hfovxy_focal.x, 
-                              hfovxy_focal.y, 
                               cov3d, 
                               view_matrix);
 
