@@ -237,17 +237,17 @@ def main():
                     img = np.frombuffer(bufferdata, np.uint8, -1).reshape(height, width, 3)
                     imageio.imwrite("save.png", img[::-1])
                     # save intermediate information
-                    # np.savez(
-                    #     "save.npz",
-                    #     gau_xyz=gaussians.xyz,
-                    #     gau_s=gaussians.scale,
-                    #     gau_rot=gaussians.rot,
-                    #     gau_c=gaussians.sh,
-                    #     gau_a=gaussians.opacity,
-                    #     viewmat=g_camera.get_view_matrix(),
-                    #     projmat=g_camera.get_project_matrix(),
-                    #     hfovxyfocal=g_camera.get_htanfovxy_focal()
-                    # )
+                    np.savez(
+                        "save.npz",
+                        gau_xyz=gaussians.xyz,
+                        gau_s=gaussians.scale,
+                        gau_rot=gaussians.rot,
+                        gau_c=gaussians.sh,
+                        gau_a=gaussians.opacity,
+                        viewmat=g_camera.get_view_matrix(),
+                        projmat=g_camera.get_project_matrix(),
+                        hfovxyfocal=g_camera.get_htanfovxy_focal()
+                    )
                 imgui.end()
 
         if g_show_help_win:

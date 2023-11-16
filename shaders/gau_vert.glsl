@@ -142,7 +142,7 @@ void main()
 		gl_Position = vec4(0.f, 0.f, 0.f, 0.f);
     
     float det_inv = 1.f / det;
-	conic = vec3(cov2d.z * det_inv, -cov2d.y * det_inv, cov2d.x * det_inv);
+	conic = vec3(cov2d.z, -cov2d.y, cov2d.x) * det_inv;
     
     vec2 quadwh_scr = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
     vec2 quadwh_ndc = quadwh_scr / wh * 2;  // in ndc space
