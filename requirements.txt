@@ -4,3 +4,4 @@ imgui
 PyOpenGL
 numpy
 imageio
+plyfile
