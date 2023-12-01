@@ -1,50 +1,5 @@
 import numpy as np
-
-
-def computeCov3D(scale,  # n, 3
-                q,  # n, 4
-                ):  # -> n, 3, 3
-    n = len(scale)
-    S = np.zeros((n, 3, 3))
-    S[:, [0, 1, 2], [0, 1, 2]] = scale
-    r = q[:, 0]
-    x = q[:, 1]
-    y = q[:, 2]
-    z = q[:, 3]
-    
-    R = np.stack([
-		1. - 2. * (y * y + z * z), 2. * (x * y - r * z), 2. * (x * z + r * y),
-		2. * (x * y + r * z), 1. - 2. * (x * x + z * z), 2. * (y * z - r * x),
-		2. * (x * z - r * y), 2. * (y * z + r * x), 1. - 2. * (x * x + y * y)
-	], axis=-1).reshape(n, 3, 3)
-
-    M = S @ R
-    Sigma = np.transpose(M, [0, 2, 1]) @ M
-    return Sigma
-
-
-def computeCov2D(mean_view,  # n, 3, 
-                focal_x: float, 
-                focal_y: float,
-                cov3D,   # n, 3, 3, 
-                viewmatrix):   # 3, 3
-    t = mean_view
-    n = len(mean_view)
-    J = np.zeros((n, 3, 3))
-    tz = t[:, 2]
-    tz2 = tz * tz
-    J[:, 0, 0] = focal_x / tz
-    J[:, 2, 0] = - (focal_y * t[:, 0]) / tz2
-    J[:, 1, 1] = focal_y / tz
-    J[:, 2, 1] = -(focal_y * t[:, 1]) / tz2
-    
-    W = viewmatrix[:3, :3].T
-    T = W[None] @ J
-
-    cov = np.transpose(T, [0, 2, 1]) @ np.transpose(cov3D, [0, 2, 1]) @ T
-    cov[:, 0, 0] += 0.3
-    cov[:, 1, 1] += 0.3
-    return cov
+from util_gau import computeCov2D, computeCov3D
 
 
 def pixel_coord(H, W):
@@ -53,7 +8,6 @@ def pixel_coord(H, W):
 
 
 if __name__ == "__main__":
-    import glm
     # soft renderer
     state = np.load("save.npz")
     gau_xyz=state["gau_xyz"]
