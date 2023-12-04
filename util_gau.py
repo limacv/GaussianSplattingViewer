@@ -9,6 +9,7 @@ class GaussianDataBasic:
     scale: np.ndarray
     opacity: np.ndarray
     sh: np.ndarray
+    normal: np.ndarray
     def flat(self) -> np.ndarray:
         ret = np.concatenate([self.xyz, self.rot, self.scale, self.opacity, self.sh], axis=-1)
         return np.ascontiguousarray(ret)
@@ -65,6 +66,9 @@ def load_ply(path):
     xyz = np.stack((np.asarray(plydata.elements[0]["x"]),
                     np.asarray(plydata.elements[0]["y"]),
                     np.asarray(plydata.elements[0]["z"])),  axis=1)
+    normal = np.stack((np.asarray(plydata.elements[0]["nx"]),
+                    np.asarray(plydata.elements[0]["ny"]),
+                    np.asarray(plydata.elements[0]["nz"])),  axis=1)
     opacities = np.asarray(plydata.elements[0]["opacity"])[..., np.newaxis]
 
     features_dc = np.zeros((xyz.shape[0], 3, 1))
@@ -105,7 +109,7 @@ def load_ply(path):
     shs = np.concatenate([features_dc.reshape(-1, 3), 
                         features_extra.reshape(len(features_dc), -1)], axis=-1).astype(np.float32)
     shs = shs.astype(np.float32)
-    return GaussianDataBasic(xyz, rots, scales, opacities, shs)
+    return GaussianDataBasic(xyz, rots, scales, opacities, shs, normal)
 
 
 def computeCov3D(scale,  # n, 3
@@ -155,6 +159,6 @@ def computeCov2D(mean_view,  # n, 3,
 
 
 if __name__ == "__main__":
-    gs = load_ply("C:\\Users\\MSI_NB\\Downloads\\viewers\\models\\train\\point_cloud\\iteration_7000\\point_cloud.ply")
+    gs = load_ply("/Users/lmaag/Downloads/point_cloud.ply")
     a = gs.flat()
     print(a.shape)
