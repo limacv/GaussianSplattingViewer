@@ -144,6 +144,7 @@ def main():
     # set uniforms
     util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
     util.set_uniform_1int(g_program, g_render_mode + render_mode_offset, "render_mod")
+    util.set_uniform_1int(g_program, 1, "normal_cull")
     update_camera_pose()
     update_camera_intrin()
     
@@ -220,6 +221,12 @@ def main():
                     util.set_uniform_1int(g_program, g_render_mode + render_mode_offset, "render_mod")
                 
                 # sort button
+                if imgui.button(label='presort Gaus'):
+                    presort_gaussian(gaussians, "depth")
+                if imgui.button(label='presort Gaus knn'):
+                    presort_gaussian(gaussians, "knn")
+                if imgui.button(label='presort Gaus distance'):
+                    presort_gaussian(gaussians, "distance")
                 if imgui.button(label='sort Gaussians'):
                     sort_gaussian(gaussians)
                 imgui.same_line()
@@ -272,13 +279,25 @@ def main():
 
 
 def sort_gaussian(gaus: util_gau.GaussianDataBasic):
+    global g_num_gau_draw
     xyz = gaus.xyz
     view_mat = g_camera.get_view_matrix()
     xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
     depth = xyz_view[:, 2, 0]
     index = np.argsort(depth)
     index = index.astype(np.int32).reshape(-1, 1)
+    g_num_gau_draw = len(index)
+    util.set_uniform_1int(g_program, 0, "normal_cull")
     util.set_storage_buffer_data(g_program, "gaussian_order", index, bind_idx=1)
+    
+
+def presort_gaussian(gaus: util_gau.GaussianDataBasic, normal_mod="depth"):
+    global g_num_gau_draw
+    normal, index = util_sort.presort_gaussian(gaus, normal_mod)
+    g_num_gau_draw = len(index)
+    util.set_uniform_1int(g_program, 1, "normal_cull")
+    util.set_storage_buffer_data(g_program, "gaussian_order", index, bind_idx=1)
+    util.set_storage_buffer_data(g_program, "gaussian_normal", normal, bind_idx=2)
     
 
 def update_gaussian_data(gaus: util_gau.GaussianDataBasic):

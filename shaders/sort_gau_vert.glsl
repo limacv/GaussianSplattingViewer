@@ -54,6 +54,7 @@ uniform vec3 cam_pos;
 uniform int sh_dim;
 uniform float scale_modifier;
 uniform int render_mod;  // > 0 render 0-ith SH dim, -1 depth, -2 bill board, -3 gaussian, -4 normal
+uniform int normal_cull;
 
 out vec3 color;
 out float alpha;
@@ -118,7 +119,7 @@ void main()
 	vec3 g_normal = vec3(g_n[idstart_n], g_n[idstart_n + 1], g_n[idstart_n + 2]);
 	vec3 g_normal_view = mat3(view_matrix) * g_normal;
 	// backface culling
-	if (g_normal_view.z <= 0)
+	if (normal_cull > 0 && g_normal_view.z <= 0)
 	{
 		gl_Position = vec4(-100, -100, -100, 1);
 		return;

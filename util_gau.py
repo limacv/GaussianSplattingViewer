@@ -29,6 +29,12 @@ def naive_gaussian():
         0, 1, 0,
         0, 0, 1,
     ]).astype(np.float32).reshape(-1, 3)
+    gau_normal = np.array([
+        1, 1, 1,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+    ]).astype(np.float32).reshape(-1, 3)
     gau_rot = np.array([
         1, 0, 0, 0,
         1, 0, 0, 0,
@@ -56,7 +62,8 @@ def naive_gaussian():
         gau_rot,
         gau_s,
         gau_a,
-        gau_c
+        gau_c,
+        gau_normal
     )
 
 
