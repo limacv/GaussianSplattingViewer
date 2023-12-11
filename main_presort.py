@@ -7,11 +7,13 @@ import util
 import imageio
 import util_gau
 import util_sort
+import util_sort
 import tkinter as tk
 from tkinter import filedialog
 import os
 import sys
 import argparse
+from dataclasses import make_dataclass
 
 # Add the directory containing main.py to the Python path
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -22,7 +24,8 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 g_width, g_height = 1280, 720
-g_num_gau_draw = 0
+SortParams = make_dataclass("sortParams", ["num_draw", "method", "index", "normal"])
+g_sort_params = SortParams(0, "distance", None, None)
 g_camera = util.Camera(g_height, g_width)
 g_program = None
 g_scale_modifier = 1.
@@ -101,7 +104,7 @@ def window_resize_callback(window, width, height):
 def main():
     global g_program, g_camera, g_scale_modifier, g_auto_sort, \
         g_show_control_win, g_show_help_win, \
-        g_render_mode, g_render_mode_tables
+        g_render_mode, g_render_mode_tables, g_sort_params
         
     imgui.create_context()
     if args.hidpi:
@@ -165,7 +168,7 @@ def main():
         
         gl.glUseProgram(g_program)
         gl.glBindVertexArray(vao)
-        gl.glDrawElementsInstanced(gl.GL_TRIANGLES, len(quad_f.reshape(-1)), gl.GL_UNSIGNED_INT, None, g_num_gau_draw)
+        gl.glDrawElementsInstanced(gl.GL_TRIANGLES, len(quad_f.reshape(-1)), gl.GL_UNSIGNED_INT, None, g_sort_params.num_draw)
 
         # imgui ui
         if imgui.begin_main_menu_bar():
@@ -183,10 +186,10 @@ def main():
             if imgui.begin("Control", True):
                 imgui.text(f"fps = {imgui.get_io().framerate:.1f}")
                 imgui.text(f"# of Gaus = {len(gaussians)}")
-                imgui.text(f"# of Gaus Draw = {g_num_gau_draw}")
+                imgui.text(f"# of Gaus Draw = {g_sort_params.num_draw}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
-                        initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
+                        initialdir="D:\\source\\data\\Gaussians\\output\\truck_mod12\\point_cloud\\iteration_30000",
                         filetypes=[('ply file', '.ply')]
                         )
                     if file_path:
@@ -221,20 +224,45 @@ def main():
                     util.set_uniform_1int(g_program, g_render_mode + render_mode_offset, "render_mod")
                 
                 # sort button
+                imgui.text("Sort Method")
                 if imgui.button(label='presort Gaus'):
-                    presort_gaussian(gaussians, "depth")
+                    g_sort_params.method = "depth"
+                    g_sort_params.normal, g_sort_params.index = util_sort.presort_gaussian(gaussians, "depth")
+                    update_index_buffer()
                 if imgui.button(label='presort Gaus knn'):
-                    presort_gaussian(gaussians, "knn")
+                    g_sort_params.method = "knn"
+                    g_sort_params.normal, g_sort_params.index = util_sort.presort_gaussian(gaussians, "knn")
+                    update_index_buffer()
                 if imgui.button(label='presort Gaus distance'):
-                    presort_gaussian(gaussians, "distance")
+                    g_sort_params.method = "distance"
+                    g_sort_params.normal, g_sort_params.index = util_sort.presort_gaussian(gaussians, "distance")
+                    update_index_buffer()
                 if imgui.button(label='sort Gaussians'):
-                    sort_gaussian(gaussians)
+                    g_sort_params.method = "gt sort"
+                    g_sort_params.index = util_sort.sort_gaussian(gaussians, g_camera.get_view_matrix())
+                    g_sort_params.normal = None
+                    update_index_buffer()
+                if imgui.button(label='sort3'):
+                    g_sort_params.method = "sort3"
+                    util_sort.sort3_gaussian(gaussians)
+                    g_sort_params.normal = None
+                    g_auto_sort = True
+                
+                imgui.text(f"{g_sort_params.method} update")
                 imgui.same_line()
                 changed, g_auto_sort = imgui.checkbox(
-                        "auto sort", g_auto_sort,
+                        "auto update", g_auto_sort,
                     )
                 if g_auto_sort:
-                    sort_gaussian(gaussians)
+                    if g_sort_params.method == "gt sort":
+                        g_sort_params.index = util_sort.sort_gaussian(gaussians, g_camera.get_view_matrix())
+                        g_sort_params.normal = None
+                        update_index_buffer()
+                    elif g_sort_params.method == "sort3":
+                        g_sort_params.index = util_sort.sort3_parse_index(g_camera.get_view_matrix())
+                        update_index_buffer()
+                    else:
+                        update_index_buffer()
                 
                 if imgui.button(label='save image'):
                     width, height = glfw.get_framebuffer_size(window)
@@ -278,27 +306,16 @@ def main():
     glfw.terminate()
 
 
-def sort_gaussian(gaus: util_gau.GaussianDataBasic):
-    global g_num_gau_draw
-    xyz = gaus.xyz
-    view_mat = g_camera.get_view_matrix()
-    xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
-    depth = xyz_view[:, 2, 0]
-    index = np.argsort(depth)
-    index = index.astype(np.int32).reshape(-1, 1)
-    g_num_gau_draw = len(index)
-    util.set_uniform_1int(g_program, 0, "normal_cull")
-    util.set_storage_buffer_data(g_program, "gaussian_order", index, bind_idx=1)
-    
+def update_index_buffer():
+    global g_sort_params
+    g_sort_params.num_draw = len(g_sort_params.index)
+    if g_sort_params.normal is not None:
+        util.set_uniform_1int(g_program, 1, "normal_cull")
+        util.set_storage_buffer_data(g_program, "gaussian_normal", g_sort_params.normal, bind_idx=2)
+    else:
+        util.set_uniform_1int(g_program, 0, "normal_cull")
+    util .set_storage_buffer_data(g_program, "gaussian_order", g_sort_params.index, bind_idx=1)
 
-def presort_gaussian(gaus: util_gau.GaussianDataBasic, normal_mod="depth"):
-    global g_num_gau_draw
-    normal, index = util_sort.presort_gaussian(gaus, normal_mod)
-    g_num_gau_draw = len(index)
-    util.set_uniform_1int(g_program, 1, "normal_cull")
-    util.set_storage_buffer_data(g_program, "gaussian_order", index, bind_idx=1)
-    util.set_storage_buffer_data(g_program, "gaussian_normal", normal, bind_idx=2)
-    
 
 def update_gaussian_data(gaus: util_gau.GaussianDataBasic):
     # load gaussian geometry

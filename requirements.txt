@@ -1,6 +1,7 @@
 glfw
 PyGLM
-imgui
+imgui[full]
 PyOpenGL
 numpy
 imageio
+plyfile
