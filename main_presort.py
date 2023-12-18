@@ -32,9 +32,9 @@ g_scale_modifier = 1.
 g_auto_sort = False
 g_show_control_win = True
 g_show_help_win = True
-g_render_mode_tables = ["Normal", "Gaussian Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
-g_render_mode = 7
-render_mode_offset = -4  # SH:0 always at index 0
+g_render_mode_tables = ["Order", "Normal", "Gaussian Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
+g_render_mode = 8
+render_mode_offset = -5  # SH:0 always at index 0
 
 def impl_glfw_init():
     window_name = "NeUVF editor"
@@ -189,7 +189,7 @@ def main():
                 imgui.text(f"# of Gaus Draw = {g_sort_params.num_draw}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
-                        initialdir="D:\\source\\data\\Gaussians\\output\\truck_mod12\\point_cloud\\iteration_30000",
+                        initialdir="D:\\source\\data\\Gaussians\\output",
                         filetypes=[('ply file', '.ply')]
                         )
                     if file_path:
@@ -228,6 +228,10 @@ def main():
                 if imgui.button(label='presort Gaus'):
                     g_sort_params.method = "depth"
                     g_sort_params.normal, g_sort_params.index = util_sort.presort_gaussian(gaussians, "depth")
+                    update_index_buffer()
+                if imgui.button(label='presort Gaus smoothed'):
+                    g_sort_params.method = "smoothed"
+                    g_sort_params.normal, g_sort_params.index = util_sort.presort_gaussian(gaussians, "smoothed")
                     update_index_buffer()
                 if imgui.button(label='presort Gaus knn'):
                     g_sort_params.method = "knn"
@@ -314,7 +318,8 @@ def update_index_buffer():
         util.set_storage_buffer_data(g_program, "gaussian_normal", g_sort_params.normal, bind_idx=2)
     else:
         util.set_uniform_1int(g_program, 0, "normal_cull")
-    util .set_storage_buffer_data(g_program, "gaussian_order", g_sort_params.index, bind_idx=1)
+    util.set_storage_buffer_data(g_program, "gaussian_order", g_sort_params.index, bind_idx=1)
+    util.set_uniform_1int(g_program, g_sort_params.num_draw, "num_instance")
 
 
 def update_gaussian_data(gaus: util_gau.GaussianDataBasic):

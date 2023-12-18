@@ -13,6 +13,18 @@ def sort_gaussian(gaus: util_gau.GaussianDataBasic, view_mat):
     return index
 
 
+def knn_smoothed_normal(gaus: GaussianDataBasic):
+    pcd = open3d.geometry.PointCloud()
+    pcd.points = open3d.utility.Vector3dVector(gaus.xyz)         
+    pcd_tree = open3d.geometry.KDTreeFlann(pcd)
+    idx = [pcd_tree.search_knn_vector_3d(p, knn=100)[1] for p in pcd.points]
+    idx = np.array(idx)
+    normals = gaus.normal[idx]
+    normals_mean = np.mean(normals, axis=-2)
+    normals_mean = normals_mean / np.linalg.norm(normals_mean, axis=-1, keepdims=True)
+    return np.ascontiguousarray(normals_mean).astype(np.float32)
+
+
 def knn_normal(gaus: GaussianDataBasic):
     # could substitute normal computation on-the-fly
     pcd = open3d.geometry.PointCloud()
@@ -30,6 +42,8 @@ def presort_gaussian(gaus: GaussianDataBasic, normal_mod: str="depth"):
     
     if normal_mod == "depth":
         normal = gaus.normal
+    elif normal_mod == "smoothed":
+        normal = knn_smoothed_normal(gaus)
     elif normal_mod == "knn":
         normal = knn_normal(gaus)
     elif normal_mod == "distance":
@@ -53,9 +67,9 @@ g_sort3_indexes = []
 def sort3_gaussian(gaus: util_gau.GaussianDataBasic):
     global g_sort3_indexes
     xyz = gaus.xyz
-    index_x = np.argsort(xyz[:, 0])
-    index_y = np.argsort(xyz[:, 1])
-    index_z = np.argsort(xyz[:, 2])
+    index_x = np.argsort(xyz[:, 0]).astype(np.int32).reshape(-1, 1)
+    index_y = np.argsort(xyz[:, 1]).astype(np.int32).reshape(-1, 1)
+    index_z = np.argsort(xyz[:, 2]).astype(np.int32).reshape(-1, 1)
 
     g_sort3_indexes = [index_x, index_y, index_z]
 
@@ -65,3 +79,9 @@ def sort3_parse_index(viewmat):
     index = g_sort3_indexes[idx]
     index = index if viewdir[idx] > 0 else index[::-1]
     return np.ascontiguousarray(index)
+
+
+if __name__ == "__main__":
+    from util_gau import naive_gaussian
+    gaus = naive_gaussian()
+    knn_smoothed_normal(gaus)

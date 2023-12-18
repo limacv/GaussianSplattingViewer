@@ -55,6 +55,7 @@ uniform int sh_dim;
 uniform float scale_modifier;
 uniform int render_mod;  // > 0 render 0-ith SH dim, -1 depth, -2 bill board, -3 gaussian, -4 normal
 uniform int normal_cull;
+uniform int num_instance;
 
 out vec3 color;
 out float alpha;
@@ -116,18 +117,19 @@ void main()
 {
 	int boxid = gi[gl_InstanceID];
 	int idstart_n = gl_InstanceID * 3;
+	int total_dim = 3 + 4 + 3 + 1 + sh_dim;
+	int start = boxid * total_dim;
+	vec4 g_pos = vec4(get_vec3(start + POS_IDX), 1.f);
 	vec3 g_normal = vec3(g_n[idstart_n], g_n[idstart_n + 1], g_n[idstart_n + 2]);
-	vec3 g_normal_view = mat3(view_matrix) * g_normal;
+	vec3 view_dir = normalize(g_pos.xyz - cam_pos);
+
 	// backface culling
-	if (normal_cull > 0 && g_normal_view.z <= 0)
+	if (normal_cull > 0 && dot(view_dir, g_normal) >= 0)
 	{
 		gl_Position = vec4(-100, -100, -100, 1);
 		return;
 	}
 
-	int total_dim = 3 + 4 + 3 + 1 + sh_dim;
-	int start = boxid * total_dim;
-	vec4 g_pos = vec4(get_vec3(start + POS_IDX), 1.f);
     vec4 g_pos_view = view_matrix * g_pos;
     vec4 g_pos_screen = projection_matrix * g_pos_view;
 	g_pos_screen.xyz = g_pos_screen.xyz / g_pos_screen.w;
@@ -175,8 +177,15 @@ void main()
 		return;
 	}
 	else if (render_mod == -4)
+	{		
+		// color = (g_normal + 1) * 0.5;
+		color = g_normal.y > 0 ? g_normal : -g_normal;
+		color = (color + 1) * 0.5;
+		return;
+	}
+	else if (render_mod == -5)
 	{
-		color = (g_normal + 1) * 0.5;
+		color = vec3(gl_InstanceID / float(num_instance));
 		return;
 	}
 
