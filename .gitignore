@@ -1,6 +1,7 @@
 __pycache__
 *.png
 !teaser.png
+!setting.png
 *.npz
 *.ini
 *.dump
