@@ -11,6 +11,7 @@ from tkinter import filedialog
 import os
 import sys
 import argparse
+from renderer_ogl import OpenGLRenderer
 
 # Add the directory containing main.py to the Python path
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -22,7 +23,6 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 g_width, g_height = 1280, 720
 g_camera = util.Camera(g_height, g_width)
-g_program = None
 g_scale_modifier = 1.
 g_auto_sort = False
 g_show_control_win = True
@@ -77,18 +77,14 @@ def key_callback(window, key, scancode, action, mods):
         elif key == glfw.KEY_E:
             g_camera.process_roll_key(-1)
 
-def update_camera_pose():
+def update_camera_pose_lazy(renderer):
     if g_camera.is_pose_dirty:
-        view_mat = g_camera.get_view_matrix()
-        util.set_uniform_mat4(g_program, view_mat, "view_matrix")
-        util.set_uniform_v3(g_program, g_camera.position, "cam_pos")
+        renderer.update_camera_pose(g_camera)
         g_camera.is_pose_dirty = False
 
-def update_camera_intrin():
+def update_camera_intrin_lazy(renderer):
     if g_camera.is_intrin_dirty:
-        proj_mat = g_camera.get_project_matrix()
-        util.set_uniform_mat4(g_program, proj_mat, "projection_matrix")
-        util.set_uniform_v3(g_program, g_camera.get_htanfovxy_focal(), "hfovxy_focal")
+        renderer.update_camera_intrin(g_camera)
         g_camera.is_intrin_dirty = False
 
 def window_resize_callback(window, width, height):
@@ -96,7 +92,7 @@ def window_resize_callback(window, width, height):
     g_camera.update_resolution(height, width)
 
 def main():
-    global g_program, g_camera, g_scale_modifier, g_auto_sort, \
+    global g_camera, g_scale_modifier, g_auto_sort, \
         g_show_control_win, g_show_help_win, \
         g_render_mode, g_render_mode_tables
         
@@ -115,39 +111,20 @@ def main():
     
     glfw.set_window_size_callback(window, window_resize_callback)
 
-    # Load and compile shaders
-    g_program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
+    renderer = OpenGLRenderer()
 
-    # Vertex data for a quad
-    quad_v = np.array([
-        -1,  1,
-        1,  1,
-        1, -1,
-        -1, -1
-    ], dtype=np.float32).reshape(4, 2)
-    quad_f = np.array([
-        0, 1, 2,
-        0, 2, 3
-    ], dtype=np.uint32).reshape(2, 3)
-    
     # gaussian data
     gaussians = util_gau.naive_gaussian()
-    update_gaussian_data(gaussians)
-    
-    # load quad geometry
-    vao, buffer_id = util.set_attributes(g_program, ["position"], [quad_v])
-    util.set_faces_tovao(vao, quad_f)
+    renderer.update_gaussian_data(gaussians)
+    renderer.sort_and_update(g_camera)
     
     # set uniforms
-    util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
-    util.set_uniform_1int(g_program, g_render_mode - 3, "render_mod")
-    update_camera_pose()
-    update_camera_intrin()
+    renderer.set_scale_modifier(g_scale_modifier)
+    renderer.set_render_mod(g_render_mode - 3)
+    update_camera_pose_lazy(renderer)
+    update_camera_intrin_lazy(renderer)
     
     # settings
-    gl.glDisable(gl.GL_CULL_FACE)
-    gl.glEnable(gl.GL_BLEND)
-    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
     while not glfw.window_should_close(window):
         glfw.poll_events()
         impl.process_inputs()
@@ -156,13 +133,10 @@ def main():
         gl.glClearColor(0, 0, 0, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
-        update_camera_pose()
-        update_camera_intrin()
+        update_camera_pose_lazy(renderer)
+        update_camera_intrin_lazy(renderer)
         
-        gl.glUseProgram(g_program)
-        gl.glBindVertexArray(vao)
-        num_gau = len(gaussians)
-        gl.glDrawElementsInstanced(gl.GL_TRIANGLES, len(quad_f.reshape(-1)), gl.GL_UNSIGNED_INT, None, num_gau)
+        renderer.draw()
 
         # imgui ui
         if imgui.begin_main_menu_bar():
@@ -179,7 +153,7 @@ def main():
         if g_show_control_win:
             if imgui.begin("Control", True):
                 imgui.text(f"fps = {imgui.get_io().framerate:.1f}")
-                imgui.text(f"# of Gaus = {num_gau}")
+                imgui.text(f"# of Gaus = {len(renderer.gaussians)}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
                         initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
@@ -188,7 +162,8 @@ def main():
                     if file_path:
                         try:
                             gaussians = util_gau.load_ply(file_path)
-                            update_gaussian_data(gaussians)
+                            renderer.update_gaussian_data(gaussians)
+                            renderer.sort_and_update(g_camera)
                         except RuntimeError as e:
                             pass
                 
@@ -197,7 +172,7 @@ def main():
                     "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
                 )
                 g_camera.is_intrin_dirty = changed
-                update_camera_intrin()
+                update_camera_intrin_lazy(renderer)
                 
                 # scale modifier
                 changed, g_scale_modifier = imgui.slider_float(
@@ -209,22 +184,22 @@ def main():
                     changed = True
                     
                 if changed:
-                    util.set_uniform_1f(g_program, g_scale_modifier, "scale_modifier")
+                    renderer.set_scale_modifier(g_scale_modifier)
                 
                 # render mode
                 changed, g_render_mode = imgui.combo("shading", g_render_mode, g_render_mode_tables)
                 if changed:
-                    util.set_uniform_1int(g_program, g_render_mode - 3, "render_mod")
+                    renderer.set_render_mod(g_render_mode - 3)
                 
                 # sort button
                 if imgui.button(label='sort Gaussians'):
-                    sort_gaussian(gaussians)
+                    renderer.sort_and_update(g_camera)
                 imgui.same_line()
                 changed, g_auto_sort = imgui.checkbox(
                         "auto sort", g_auto_sort,
                     )
                 if g_auto_sort:
-                    sort_gaussian(gaussians)
+                    renderer.sort_and_update(g_camera)
                 
                 if imgui.button(label='save image'):
                     width, height = glfw.get_framebuffer_size(window)
@@ -267,24 +242,6 @@ def main():
     impl.shutdown()
     glfw.terminate()
 
-
-def sort_gaussian(gaus):
-    xyz = gaus.xyz
-    view_mat = g_camera.get_view_matrix()
-    xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
-    depth = xyz_view[:, 2, 0]
-    index = np.argsort(depth)
-    index = index.astype(np.int32).reshape(-1, 1)
-    util.set_storage_buffer_data(g_program, "gi", index, bind_idx=1)
-    
-
-def update_gaussian_data(gaus):
-    # load gaussian geometry
-    num_gau = len(gaus)
-    gaussian_data = gaus.flat()
-    util.set_storage_buffer_data(g_program, "gaussian_data", gaussian_data, bind_idx=0)
-    sort_gaussian(gaus)
-    util.set_uniform_1int(g_program, gaus.sh_dim, "sh_dim")
 
 if __name__ == "__main__":
     global args
