@@ -250,13 +250,14 @@ def main():
                     g_sort_params.method = "sort3"
                     util_sort.sort3_gaussian(gaussians)
                     g_sort_params.normal = None
-                    g_auto_sort = True
+                    g_sort_params.index = util_sort.sort3_parse_index(g_camera.get_view_matrix())
+                    update_index_buffer()
                 
                 imgui.text(f"{g_sort_params.method} update")
                 imgui.same_line()
                 changed, g_auto_sort = imgui.checkbox(
                         "auto update", g_auto_sort,
-                    )
+                    ) 
                 if g_auto_sort:
                     if g_sort_params.method == "gt sort":
                         g_sort_params.index = util_sort.sort_gaussian(gaussians, g_camera.get_view_matrix())
@@ -267,7 +268,6 @@ def main():
                         update_index_buffer()
                     else:
                         update_index_buffer()
-                
                 if imgui.button(label='save image'):
                     width, height = glfw.get_framebuffer_size(window)
                     nrChannels = 3
