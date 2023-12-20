@@ -128,6 +128,15 @@ def load_shaders(vs, fs):
     )
     return active_shader
 
+
+def compile_shaders(vertex_shader, fragment_shader):
+    active_shader = shaders.compileProgram(
+        shaders.compileShader(vertex_shader, GL_VERTEX_SHADER),
+        shaders.compileShader(fragment_shader, GL_FRAGMENT_SHADER),
+    )
+    return active_shader
+
+
 def set_attributes(program, keys, values, vao=None, buffer_ids=None):
     glUseProgram(program)
     if vao is None:

@@ -14,6 +14,8 @@ Launch the viewer:
 python main.py
 ```
 
+If you want to use cuda backend, install the 
+
 Check how to use UI in the "help" panel.
 
 The Gaussian file loader is compatiable with the official implementation. 

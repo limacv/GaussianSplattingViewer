@@ -16,7 +16,7 @@ def _sort_gaussian(gaus: util_gau.GaussianData, view_mat):
 
 class GaussianRenderBase:
     def __init__(self):
-        self.gaussian = None
+        self.gaussians = None
 
     def set_scale_modifier(self, modifier):
         raise NotImplementedError()
@@ -32,11 +32,15 @@ class GaussianRenderBase:
     
     def draw(self):
         raise NotImplementedError()
+    
+    def set_render_reso(self, w, h):
+        raise NotImplementedError()
 
 
 class OpenGLRenderer(GaussianRenderBase):
-    def __init__(self):
+    def __init__(self, w, h):
         super().__init__()
+        gl.glViewport(0, 0, w, h)
         self.program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
 
         # Vertex data for a quad
@@ -78,6 +82,9 @@ class OpenGLRenderer(GaussianRenderBase):
 
     def set_render_mod(self, mod: int):
         util.set_uniform_1int(self.program, mod, "render_mod")
+
+    def set_render_reso(self, w, h):
+        gl.glViewport(0, 0, w, h)
 
     def update_camera_pose(self, camera: util.Camera):
         view_mat = camera.get_view_matrix()
