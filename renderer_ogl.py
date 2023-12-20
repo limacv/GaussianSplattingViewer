@@ -4,7 +4,6 @@ import util_gau
 import numpy as np
 
 
-
 def _sort_gaussian(gaus: util_gau.GaussianData, view_mat):
     xyz = gaus.xyz
     xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
@@ -18,7 +17,13 @@ class GaussianRenderBase:
     def __init__(self):
         self.gaussians = None
 
-    def set_scale_modifier(self, modifier):
+    def update_gaussian_data(self, gaus: util_gau.GaussianData):
+        raise NotImplementedError()
+    
+    def sort_and_update(self):
+        raise NotImplementedError()
+
+    def set_scale_modifier(self, modifier: float):
         raise NotImplementedError()
     
     def set_render_mod(self, mod: int):

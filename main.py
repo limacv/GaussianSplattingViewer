@@ -11,13 +11,7 @@ from tkinter import filedialog
 import os
 import sys
 import argparse
-from renderer_ogl import OpenGLRenderer
-CUDARendereropt = None
-try:
-    from renderer_cuda import CUDARenderer
-    CUDARendereropt = CUDARenderer
-except ImportError:
-    pass
+from renderer_ogl import OpenGLRenderer, GaussianRenderBase
 
 
 # Add the directory containing main.py to the Python path
@@ -29,7 +23,13 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 g_camera = util.Camera(720, 1280)
-g_renderer = None
+BACKEND_OGL=0
+BACKEND_CUDA=1
+g_renderer_list = [
+    None, # ogl
+]
+g_renderer_idx = BACKEND_OGL
+g_renderer = g_renderer_list[g_renderer_idx]
 g_scale_modifier = 1.
 g_auto_sort = False
 g_show_control_win = True
@@ -94,13 +94,22 @@ def update_camera_intrin_lazy():
         g_renderer.update_camera_intrin(g_camera)
         g_camera.is_intrin_dirty = False
 
+def update_activated_renderer_state(gaus: util_gau.GaussianData):
+    g_renderer.update_gaussian_data(gaus)
+    g_renderer.sort_and_update(g_camera)
+    g_renderer.set_scale_modifier(g_scale_modifier)
+    g_renderer.set_render_mod(g_render_mode - 3)
+    g_renderer.update_camera_pose(g_camera)
+    g_renderer.update_camera_intrin(g_camera)
+    g_renderer.set_render_reso(g_camera.w, g_camera.h)
+
 def window_resize_callback(window, width, height):
     gl.glViewport(0, 0, width, height)
     g_camera.update_resolution(height, width)
     g_renderer.set_render_reso(width, height)
 
 def main():
-    global g_camera, g_renderer, g_scale_modifier, g_auto_sort, \
+    global g_camera, g_renderer, g_renderer_list, g_renderer_idx, g_scale_modifier, g_auto_sort, \
         g_show_control_win, g_show_help_win, \
         g_render_mode, g_render_mode_tables
         
@@ -119,18 +128,20 @@ def main():
     
     glfw.set_window_size_callback(window, window_resize_callback)
 
-    # g_renderer = OpenGLRenderer(g_camera.w, g_camera.h)
-    g_renderer = CUDARenderer(g_camera.w, g_camera.h)
+    # init renderer
+    g_renderer_list[BACKEND_OGL] = OpenGLRenderer(g_camera.w, g_camera.h)
+    try:
+        from renderer_cuda import CUDARenderer
+        g_renderer_list += [CUDARenderer(g_camera.w, g_camera.h)]
+    except ImportError:
+        pass
+    
+    g_renderer_idx = BACKEND_OGL
+    g_renderer = g_renderer_list[g_renderer_idx]
+
     # gaussian data
     gaussians = util_gau.naive_gaussian()
-    g_renderer.update_gaussian_data(gaussians)
-    g_renderer.sort_and_update(g_camera)
-    
-    # set uniforms
-    g_renderer.set_scale_modifier(g_scale_modifier)
-    g_renderer.set_render_mod(g_render_mode - 3)
-    update_camera_pose_lazy()
-    update_camera_intrin_lazy()
+    update_activated_renderer_state(gaussians)
     
     # settings
     while not glfw.window_should_close(window):
@@ -160,8 +171,14 @@ def main():
         
         if g_show_control_win:
             if imgui.begin("Control", True):
+                # rendering backend
+                changed, g_renderer_idx = imgui.combo("backend", g_renderer_idx, ["ogl", "cuda"][:len(g_renderer_list)])
+                if changed:
+                    g_renderer = g_renderer_list[g_renderer_idx]
+                    update_activated_renderer_state(gaussians)
+
                 imgui.text(f"fps = {imgui.get_io().framerate:.1f}")
-                imgui.text(f"# of Gaus = {len(g_renderer.gaussians)}")
+                imgui.text(f"# of Gaus = {len(gaussians)}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
                         initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",

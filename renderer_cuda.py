@@ -65,7 +65,7 @@ class GaussianDataCUDA:
     
     @property 
     def sh_dim(self):
-        return self.sh.shape[-1]
+        return self.sh.shape[-2]
     
 
 @dataclass
@@ -85,13 +85,15 @@ class GaussianRasterizationSettingsStorage:
 
 
 def gaus_cuda_from_cpu(gau: util_gau) -> GaussianDataCUDA:
-    return GaussianDataCUDA(
+    gaus =  GaussianDataCUDA(
         xyz = torch.tensor(gau.xyz).float().cuda().requires_grad_(False),
         rot = torch.tensor(gau.rot).float().cuda().requires_grad_(False),
         scale = torch.tensor(gau.scale).float().cuda().requires_grad_(False),
         opacity = torch.tensor(gau.opacity).float().cuda().requires_grad_(False),
         sh = torch.tensor(gau.sh).float().cuda().requires_grad_(False)
     )
+    gaus.sh = gaus.sh.reshape(len(gaus), -1, 3).contiguous()
+    return gaus
     
 
 class CUDARenderer(GaussianRenderBase):
@@ -153,7 +155,7 @@ class CUDARenderer(GaussianRenderBase):
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.gaussians = gaus_cuda_from_cpu(gaus)
-        self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim // 3))) - 1
+        self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
 
     def sort_and_update(self, camera: util.Camera):
         pass
@@ -170,11 +172,18 @@ class CUDARenderer(GaussianRenderBase):
         gl.glViewport(0, 0, w, h)
 
     def update_camera_pose(self, camera: util.Camera):
-        self.raster_settings["viewmatrix"] = torch.tensor(camera.get_view_matrix()).float().cuda()
+        view_matrix = camera.get_view_matrix()
+        view_matrix[[0, 2], :] = -view_matrix[[0, 2], :]
+        proj = camera.get_project_matrix() @ view_matrix
+        self.raster_settings["viewmatrix"] = torch.tensor(view_matrix.T).float().cuda()
         self.raster_settings["campos"] = torch.tensor(camera.position).float().cuda()
+        self.raster_settings["projmatrix"] = torch.tensor(proj.T).float().cuda()
 
     def update_camera_intrin(self, camera: util.Camera):
-        self.raster_settings["projmatrix"] = torch.tensor(camera.get_project_matrix()).float().cuda()
+        view_matrix = camera.get_view_matrix()
+        view_matrix[[0, 2], :] = -view_matrix[[0, 2], :]
+        proj = camera.get_project_matrix() @ view_matrix
+        self.raster_settings["projmatrix"] = torch.tensor(proj.T).float().cuda()
         hfovx, hfovy, focal = camera.get_htanfovxy_focal()
         self.raster_settings["tanfovx"] = hfovx
         self.raster_settings["tanfovy"] = hfovy
