@@ -1,7 +1,9 @@
 # Tiny Gaussian Splatting Viewer
 ![UI demo](assets/teaser.png)
-This is a simple Gaussian Splatting Viewer built with PyOpenGL. It's easy to install with minimum dependencies. The goal of this project is to provide a minimum example of the viewer for research and study purpose. 
+This is a simple Gaussian Splatting Viewer built with PyOpenGL / CUDARasterizer. It's easy to install with minimum dependencies. The goal of this project is to provide a minimum example of the viewer for research and study purpose. 
 
+# News!
+Now we support rendering using the official cuda rasterizer!
 
 # Usage
 Install the dependencies:
@@ -14,9 +16,12 @@ Launch the viewer:
 python main.py
 ```
 
-If you want to use cuda backend, install the 
+If you want to use `cuda` backend, install the [diff-gaussian-rasterization](https://github.com/graphdeco-inria/diff-gaussian-rasterization) following the guidance [here](https://github.com/graphdeco-inria/gaussian-splatting). And also install the following package:
+```
+pip install cuda-python
+```
 
-Check how to use UI in the "help" panel.
+You can check how to use UI in the "help" panel.
 
 The Gaussian file loader is compatiable with the official implementation. 
 Therefore, download pretrained Gaussian PLY file from [this official link](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip), and select the "point_cloud.ply" you like by clicking the 'open ply' button, and you are all set!
@@ -33,9 +38,12 @@ The rendering speed of is comparable to the official CUDA renderer. If you're ex
 
 - Currently, the sorting of the Gaussians uses numpy `argsort`, which is not very efficient. So there is a button to manually toggle sorting. However it's interesting to see what it looks like when the gaussian is wrongly sorted.
 
+- The `cuda` backend currently does not support other visualizations.
+
+- Based on the flip test between the two backends, the unofficial implementation seems producing slightly different results compared with the official cuda version.
 
 # TODO
 - Tighter billboard to reduce number of fragments
-- Benchmark the rendering w/ official implementation.
 - Better sorting implementation.
 - Save viewing parameters
+- Better camera control
