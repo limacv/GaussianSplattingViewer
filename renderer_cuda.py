@@ -115,7 +115,35 @@ class CUDARenderer(GaussianRenderBase):
         }
         gl.glViewport(0, 0, w, h)
         self.program = util.compile_shaders(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE)
+        # setup cuda
+        err, *_ = cu.cudaGLGetDevices(1, cu.cudaGLDeviceList.cudaGLDeviceListAll)
+        if err == cu.cudaError_t.cudaErrorUnknown:
+            raise RuntimeError(
+                "OpenGL context may be running on integrated graphics"
+            )
+        
         self.vao = gl.glGenVertexArrays(1)
+        self.tex = None
+        self.set_gl_texture(h, w)
+
+        gl.glDisable(gl.GL_CULL_FACE)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+    def update_gaussian_data(self, gaus: util_gau.GaussianData):
+        self.gaussians = gaus_cuda_from_cpu(gaus)
+        self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
+
+    def sort_and_update(self, camera: util.Camera):
+        pass
+    
+    def set_scale_modifier(self, modifier):
+        self.raster_settings["scale_modifier"] = float(modifier)
+
+    def set_render_mod(self, mod: int):
+        pass
+    
+    def set_gl_texture(self, h, w):
         self.tex = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
@@ -134,17 +162,6 @@ class CUDARenderer(GaussianRenderBase):
             None,
         )
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-
-        gl.glDisable(gl.GL_CULL_FACE)
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-
-        # setup cuda
-        err, *_ = cu.cudaGLGetDevices(1, cu.cudaGLDeviceList.cudaGLDeviceListAll)
-        if err == cu.cudaError_t.cudaErrorUnknown:
-            raise RuntimeError(
-                "OpenGL context may be running on integrated graphics"
-            )
         err, self.cuda_image = cu.cudaGraphicsGLRegisterImage(
             self.tex,
             gl.GL_TEXTURE_2D,
@@ -152,24 +169,12 @@ class CUDARenderer(GaussianRenderBase):
         )
         if err != cu.cudaError_t.cudaSuccess:
             raise RuntimeError("Unable to register opengl texture")
-
-    def update_gaussian_data(self, gaus: util_gau.GaussianData):
-        self.gaussians = gaus_cuda_from_cpu(gaus)
-        self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
-
-    def sort_and_update(self, camera: util.Camera):
-        pass
     
-    def set_scale_modifier(self, modifier):
-        self.raster_settings["scale_modifier"] = float(modifier)
-
-    def set_render_mod(self, mod: int):
-        pass
-
     def set_render_reso(self, w, h):
         self.raster_settings["image_height"] = int(h)
         self.raster_settings["image_width"] = int(w)
         gl.glViewport(0, 0, w, h)
+        self.set_gl_texture(h, w)
 
     def update_camera_pose(self, camera: util.Camera):
         view_matrix = camera.get_view_matrix()
