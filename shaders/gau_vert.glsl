@@ -51,6 +51,7 @@ uniform vec3 cam_pos;
 uniform int sh_dim;
 uniform float scale_modifier;
 uniform int render_mod;  // > 0 render 0-ith SH dim, -1 depth, -2 bill board, -3 gaussian
+uniform int fisheye;
 
 out vec3 color;
 out float alpha;
@@ -90,11 +91,34 @@ vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, 
     t.x = min(limx, max(-limx, txtz)) * t.z;
     t.y = min(limy, max(-limy, tytz)) * t.z;
 
-    mat3 J = mat3(
-        focal_x / t.z, 0.0f, -(focal_x * t.x) / (t.z * t.z),
-		0.0f, focal_y / t.z, -(focal_y * t.y) / (t.z * t.z),
-		0, 0, 0
-    );
+    mat3 J;
+	if (fisheye > 0)
+	{
+		float eps = 0.01f;
+		float x2 = t.x * t.x;
+		float y2 = t.y * t.y;
+		float xy = t.x * t.y;
+		float x2y2 = x2 + y2 + eps;
+		float len_xy = length(t.xy) + eps;
+		float x2y2z2_inv = 1.f / (x2y2 + t.z * t.z);
+		float z_over_x2y2z2 = t.z * x2y2z2_inv;
+
+		float b = atan(len_xy, - t.z) / len_xy / x2y2;
+		float a = t.z * x2y2z2_inv / (x2y2);
+		J = mat3(
+			focal_x * (x2 * a - y2 * b), focal_x * xy * (a + b),    - focal_x * t.x * x2y2z2_inv,
+			focal_y * xy  * (a + b),    focal_y * (y2 * a - x2 * b), - focal_y * t.y * x2y2z2_inv,
+			0, 0, 0
+		);
+	}
+	else
+	{
+		J = mat3(
+			focal_x / t.z, 0.0f, -(focal_x * t.x) / (t.z * t.z),
+			0.0f, focal_y / t.z, -(focal_y * t.y) / (t.z * t.z),
+			0, 0, 0
+		);
+	} 
     mat3 W = transpose(mat3(viewmatrix));
     mat3 T = W * J;
 
@@ -122,11 +146,22 @@ void main()
 	int start = boxid * total_dim;
 	vec4 g_pos = vec4(get_vec3(start + POS_IDX), 1.f);
     vec4 g_pos_view = view_matrix * g_pos;
-    vec4 g_pos_screen = projection_matrix * g_pos_view;
-	g_pos_screen.xyz = g_pos_screen.xyz / g_pos_screen.w;
-    g_pos_screen.w = 1.f;
+    vec2 wh = 2 * hfovxy_focal.xy * hfovxy_focal.z;
+	
+	vec2 g_pos_screen;
+	if (fisheye > 0)
+	{
+		float xy_len = length(g_pos_view.xy) + 0.0001f;
+		float theta = atan(xy_len, - g_pos_view.z);
+		g_pos_screen = 2 * g_pos_view.xy * hfovxy_focal.z * theta / (xy_len * wh);
+	}
+	else
+	{
+		g_pos_screen = - 2 * hfovxy_focal.z * g_pos_view.xy / (g_pos_view.z * wh);
+	}
+
 	// early culling
-	if (any(greaterThan(abs(g_pos_screen.xyz), vec3(1.3))))
+	if (any(greaterThan(abs(g_pos_screen.xy), vec2(1.3))) || -g_pos_view.z < 0.01)
 	{
 		gl_Position = vec4(-100, -100, -100, 1);
 		return;
@@ -136,7 +171,6 @@ void main()
 	float g_opacity = g_data[start + OPACITY_IDX];
 
     mat3 cov3d = computeCov3D(g_scale * scale_modifier, g_rot);
-    vec2 wh = 2 * hfovxy_focal.xy * hfovxy_focal.z;
     vec3 cov2d = computeCov2D(g_pos_view, 
                               hfovxy_focal.z, 
                               hfovxy_focal.z, 
@@ -157,7 +191,7 @@ void main()
     vec2 quadwh_ndc = quadwh_scr / wh * 2;  // in ndc space
     g_pos_screen.xy = g_pos_screen.xy + position * quadwh_ndc;
     coordxy = position * quadwh_scr;
-    gl_Position = g_pos_screen;
+    gl_Position = vec4(g_pos_screen, 0.f, 1.f);
     
     alpha = g_opacity;
 

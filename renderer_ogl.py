@@ -4,11 +4,19 @@ import util_gau
 import numpy as np
 
 
-def _sort_gaussian(gaus: util_gau.GaussianData, view_mat):
+def _sort_gaussian_viewdir(gaus: util_gau.GaussianData, view_mat):
     xyz = gaus.xyz
     xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
     depth = xyz_view[:, 2, 0]
     index = np.argsort(depth)
+    index = index.astype(np.int32).reshape(-1, 1)
+    return index
+    
+
+def _sort_gaussian_center(gaus: util_gau.GaussianData, cam_pos):
+    xyz = gaus.xyz
+    depth = np.linalg.norm(xyz - cam_pos, axis=-1)
+    index = np.argsort(-depth)
     index = index.astype(np.int32).reshape(-1, 1)
     return index
     
@@ -27,7 +35,7 @@ class GaussianRenderBase:
         raise NotImplementedError()
     
     def set_render_mod(self, mod: int):
-        raise NotImplementedError()
+        print(f"set_render_mod not implemented for {self}")
     
     def update_camera_pose(self, camera: util.Camera):
         raise NotImplementedError()
@@ -40,6 +48,9 @@ class GaussianRenderBase:
     
     def set_render_reso(self, w, h):
         raise NotImplementedError()
+    
+    def set_project_mod(self, mod):
+        print(f"set_project_mod not implemented for {self}")
 
 
 class OpenGLRenderer(GaussianRenderBase):
@@ -47,6 +58,9 @@ class OpenGLRenderer(GaussianRenderBase):
         super().__init__()
         gl.glViewport(0, 0, w, h)
         self.program = util.load_shaders('shaders/gau_vert.glsl', 'shaders/gau_frag.glsl')
+
+        # default uniform
+        util.set_uniform_1int(self.program, 0, "fisheye")
 
         # Vertex data for a quad
         self.quad_v = np.array([
@@ -78,7 +92,10 @@ class OpenGLRenderer(GaussianRenderBase):
         util.set_uniform_1int(self.program, gaus.sh_dim, "sh_dim")
 
     def sort_and_update(self, camera: util.Camera):
-        index = _sort_gaussian(self.gaussians, camera.get_view_matrix())
+        # if camera.is_fisheye:
+        #     index = _sort_gaussian_center(self.gaussians, camera.position)
+        # else:
+        index = _sort_gaussian_viewdir(self.gaussians, camera.get_view_matrix())
         util.set_storage_buffer_data(self.program, "gi", index, bind_idx=1)
         return
     
@@ -90,6 +107,12 @@ class OpenGLRenderer(GaussianRenderBase):
 
     def set_render_reso(self, w, h):
         gl.glViewport(0, 0, w, h)
+
+    def set_project_mod(self, mod):
+        if mod == "fisheye":
+            util.set_uniform_1int(self.program, 1, "fisheye")
+        else:
+            util.set_uniform_1int(self.program, 0, "fisheye")
 
     def update_camera_pose(self, camera: util.Camera):
         view_mat = camera.get_view_matrix()

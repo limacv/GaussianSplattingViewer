@@ -37,6 +37,7 @@ g_show_help_win = True
 g_render_mode_tables = ["Gaussian Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
 g_render_mode = 6
 
+
 def impl_glfw_init():
     window_name = "NeUVF editor"
 
@@ -225,6 +226,12 @@ def main():
                     )
                 if g_auto_sort:
                     g_renderer.sort_and_update(g_camera)
+                
+                changed, g_camera.is_fisheye = imgui.checkbox(
+                        "fisheye", g_camera.is_fisheye,
+                    )
+                if changed:
+                    g_renderer.set_project_mod("fisheye" if g_camera.is_fisheye else "perspective")
                 
                 if imgui.button(label='save image'):
                     width, height = glfw.get_framebuffer_size(window)

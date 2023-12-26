@@ -31,6 +31,7 @@ class Camera:
         self.trans_sensitivity = 0.01
         self.zoom_sensitivity = 0.08
         self.roll_sensitivity = 0.03
+        self.is_fisheye = False
     
     def _global_rot_mat(self):
         x = np.array([1, 0, 0])

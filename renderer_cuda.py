@@ -139,9 +139,6 @@ class CUDARenderer(GaussianRenderBase):
     
     def set_scale_modifier(self, modifier):
         self.raster_settings["scale_modifier"] = float(modifier)
-
-    def set_render_mod(self, mod: int):
-        pass
     
     def set_gl_texture(self, h, w):
         self.tex = gl.glGenTextures(1)
