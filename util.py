@@ -10,6 +10,8 @@ class Camera:
         self.zfar = 100
         self.h = h
         self.w = w
+        self.cx = 0
+        self.cy = 0
         self.fovy = np.pi / 2
         self.position = np.array([0.0, 0.0, 3.0])
         self.target = np.array([0.0, 0.0, 0.0])
@@ -49,6 +51,13 @@ class Camera:
             self.znear,
             self.zfar
         )
+        focal = self.h / (np.tan(self.fovy / 2) * 2)
+        project_mat = np.array([
+            [2 * focal / self.w, 0, 2 * self.cx, 0],
+            [0, 2 * focal / self.h, 2 * self.cy, 0],
+            [0, 0, -(self.zfar + self.znear) / (self.zfar - self.znear), -(2 * self.zfar * self.znear) / (self.zfar - self.znear)],
+            [0, 0, -1, 0]
+        ])
         return np.array(project_mat).astype(np.float32)
 
     def get_htanfovxy_focal(self):

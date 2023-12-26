@@ -197,8 +197,18 @@ def main():
                     "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
                 )
                 g_camera.is_intrin_dirty = changed
+
+                changed, g_camera.cx = imgui.slider_float(
+                    "cx", g_camera.cx, -1, 1, "cx = %.3f"
+                )
+                g_camera.is_intrin_dirty |= changed
+
+                changed, g_camera.cy = imgui.slider_float(
+                    "cy", g_camera.cy, -1, 1, "cy = %.3f"
+                )
+                g_camera.is_intrin_dirty |= changed
                 update_camera_intrin_lazy()
-                
+
                 # scale modifier
                 changed, g_scale_modifier = imgui.slider_float(
                     "", g_scale_modifier, 0.1, 10, "scale modifier = %.3f"
