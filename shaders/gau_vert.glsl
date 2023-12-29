@@ -95,10 +95,10 @@ vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, 
 	if (fisheye > 0)
 	{
 		float eps = 0.01f;
-		float x2 = t.x * t.x;
+		float x2 = t.x * t.x + eps;
 		float y2 = t.y * t.y;
 		float xy = t.x * t.y;
-		float x2y2 = x2 + y2 + eps;
+		float x2y2 = x2 + y2 ;
 		float len_xy = length(t.xy) + eps;
 		float x2y2z2_inv = 1.f / (x2y2 + t.z * t.z);
 		float z_over_x2y2z2 = t.z * x2y2z2_inv;
