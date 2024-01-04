@@ -101,7 +101,6 @@ vec3 computeCov2D(vec4 mean_view, float focal_x, float focal_y, float tan_fovx, 
 		float x2y2 = x2 + y2 ;
 		float len_xy = length(t.xy) + eps;
 		float x2y2z2_inv = 1.f / (x2y2 + t.z * t.z);
-		float z_over_x2y2z2 = t.z * x2y2z2_inv;
 
 		float b = atan(len_xy, - t.z) / len_xy / x2y2;
 		float a = t.z * x2y2z2_inv / (x2y2);
@@ -153,7 +152,10 @@ void main()
 	{
 		float xy_len = length(g_pos_view.xy) + 0.0001f;
 		float theta = atan(xy_len, - g_pos_view.z);
-		g_pos_screen = 2 * g_pos_view.xy * hfovxy_focal.z * theta / (xy_len * wh);
+		if (abs(theta) > 3.14 * 0.403)  // 145 deg
+			g_pos_screen = vec2(999, 999);
+		else
+			g_pos_screen = 2 * g_pos_view.xy * hfovxy_focal.z * theta / (xy_len * wh);
 	}
 	else
 	{
