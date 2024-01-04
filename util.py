@@ -43,6 +43,14 @@ class Camera:
         return np.array(glm.lookAt(self.position, self.target, self.up))
 
     def get_project_matrix(self):
+        # htanx, htany, focal = self.get_htanfovxy_focal()
+        # f_n = self.zfar - self.znear
+        # proj_mat = np.array([
+        #     1 / htanx, 0, 0, 0,
+        #     0, 1 / htany, 0, 0,
+        #     0, 0, self.zfar / f_n, - 2 * self.zfar * self.znear / f_n,
+        #     0, 0, 1, 0
+        # ])
         project_mat = glm.perspective(
             self.fovy,
             self.w / self.h,
