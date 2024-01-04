@@ -103,6 +103,7 @@ def update_activated_renderer_state(gaus: util_gau.GaussianData):
     g_renderer.update_camera_pose(g_camera)
     g_renderer.update_camera_intrin(g_camera)
     g_renderer.set_render_reso(g_camera.w, g_camera.h)
+    g_renderer.set_project_mod("pinhole")
 
 def window_resize_callback(window, width, height):
     gl.glViewport(0, 0, width, height)

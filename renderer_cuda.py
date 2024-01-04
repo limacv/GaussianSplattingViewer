@@ -173,6 +173,13 @@ class CUDARenderer(GaussianRenderBase):
         gl.glViewport(0, 0, w, h)
         self.set_gl_texture(h, w)
 
+    def set_project_mod(self, mod):
+        if not hasattr(GaussianRasterizationSettings, "is_fisheye"):
+            print("Warning:: installed cuda rasterizer doesnot contain fisheye")
+            return
+        
+        self.raster_settings["is_fisheye"] = (mod == "fisheye")
+
     def update_camera_pose(self, camera: util.Camera):
         view_matrix = camera.get_view_matrix()
         view_matrix[[0, 2], :] = -view_matrix[[0, 2], :]
