@@ -192,7 +192,7 @@ def main():
                         try:
                             gaussians = util_gau.load_ply(file_path)
                             g_renderer.update_gaussian_data(gaussians)
-                            g_renderer.sort_and_update(g_camera, force=True)
+                            g_renderer.sort_and_update(g_camera)
                         except RuntimeError as e:
                             pass
                 
