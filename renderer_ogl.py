@@ -3,9 +3,13 @@ import util
 import util_gau
 import numpy as np
 
-def _sort_gaussian(gaus, view_mat):
-    try:
-        import cupy as cp
+try:
+    import cupy as cp
+except ImportError:
+    pass
+
+def _sort_gaussian(gaus, view_mat, cupy_flag=False):
+    if cupy_flag:
         xyz = cp.asarray(gaus.xyz)
         view_mat = cp.asarray(view_mat)
 
@@ -16,7 +20,7 @@ def _sort_gaussian(gaus, view_mat):
         index = index.astype(cp.int32).reshape(-1, 1)
 
         index = cp.asnumpy(index) # convert to numpy
-    except ImportError:
+    else:
         xyz = np.asarray(gaus.xyz)
         view_mat = np.asarray(view_mat)
 
@@ -86,6 +90,17 @@ class OpenGLRenderer(GaussianRenderBase):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
+        # cupy flag
+        self.cupy_avaible = None
+        try:
+            import cupy as cp
+            self.cupy_avaible = True
+        except ImportError:
+            self.cupy_avaible = False
+        
+        self.last_view = None
+        
+
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.gaussians = gaus
         # load gaussian geometry
@@ -93,11 +108,16 @@ class OpenGLRenderer(GaussianRenderBase):
         util.set_storage_buffer_data(self.program, "gaussian_data", gaussian_data, bind_idx=0)
         util.set_uniform_1int(self.program, gaus.sh_dim, "sh_dim")
 
-    def sort_and_update(self, camera: util.Camera):
-        index = _sort_gaussian(self.gaussians, camera.get_view_matrix())
-        util.set_storage_buffer_data(self.program, "gi", index, bind_idx=1)
-        return
-    
+    def sort_and_update(self, camera: util.Camera, force=False):
+        view = camera.get_view_matrix()
+
+        # check whether force sort or the first iteration
+        # to avoid unnecessary sorting, only sort when view was changed
+        if force or self.last_view is None or not (self.last_view == view).all():
+            index = _sort_gaussian(self.gaussians, view, self.cupy_avaible)
+            util.set_storage_buffer_data(self.program, "gi", index, bind_idx=1)
+            self.last_view = view
+   
     def set_scale_modifier(self, modifier):
         util.set_uniform_1f(self.program, modifier, "scale_modifier")
 

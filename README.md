@@ -20,6 +20,11 @@ If you want to use `cuda` backend, install the [diff-gaussian-rasterization](htt
 ```
 pip install cuda-python
 ```
+If you want to use `CUDA` to accelerate sorting, you should install the following package:
+```
+pip install cupy-cuda11x // for cuda 11
+pip install cupy-cuda12x // for cuda 12
+```
 
 You can check how to use UI in the "help" panel.
 
