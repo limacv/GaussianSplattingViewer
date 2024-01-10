@@ -3,15 +3,71 @@ import util
 import util_gau
 import numpy as np
 
+_sort_buffer_xyz = None
+_sort_buffer_gausid = None  # used to tell whether gaussian is reloaded
 
-def _sort_gaussian(gaus: util_gau.GaussianData, view_mat):
-    xyz = gaus.xyz
+def _sort_gaussian_cpu(gaus, view_mat):
+    xyz = np.asarray(gaus.xyz)
+    view_mat = np.asarray(view_mat)
+
     xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
     depth = xyz_view[:, 2, 0]
+
     index = np.argsort(depth)
     index = index.astype(np.int32).reshape(-1, 1)
     return index
-    
+
+
+def _sort_gaussian_cupy(gaus, view_mat):
+    global _sort_buffer_gausid, _sort_buffer_xyz
+    if _sort_buffer_gausid != id(gaus):
+        _sort_buffer_xyz = cp.asarray(gaus.xyz)
+        _sort_buffer_gausid = id(gaus)
+
+    xyz = _sort_buffer_xyz
+    view_mat = cp.asarray(view_mat)
+
+    xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
+    depth = xyz_view[:, 2, 0]
+
+    index = cp.argsort(depth)
+    index = index.astype(cp.int32).reshape(-1, 1)
+
+    index = cp.asnumpy(index) # convert to numpy
+    return index
+
+
+def _sort_gaussian_torch(gaus, view_mat):
+    global _sort_buffer_gausid, _sort_buffer_xyz
+    if _sort_buffer_gausid != id(gaus):
+        _sort_buffer_xyz = torch.tensor(gaus.xyz).cuda()
+        _sort_buffer_gausid = id(gaus)
+
+    xyz = torch.tensor(gaus.xyz).cuda()
+    view_mat = torch.tensor(view_mat).cuda()
+    xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
+    depth = xyz_view[:, 2, 0]
+    index = torch.argsort(depth)
+    index = index.type(torch.int32).reshape(-1, 1).cpu().numpy()
+    return index
+
+
+# Decide which sort to use
+_sort_gaussian = None
+try:
+    import torch
+    if not torch.cuda.is_available():
+        raise ImportError
+    print("Detect torch cuda installed, will use torch as sorting backend")
+    _sort_gaussian = _sort_gaussian_torch
+except ImportError:
+    try:
+        import cupy as cp
+        print("Detect cupy installed, will use cupy as sorting backend")
+        _sort_gaussian = _sort_gaussian_cupy
+    except ImportError:
+        _sort_gaussian = _sort_gaussian_cpu
+
 
 class GaussianRenderBase:
     def __init__(self):
@@ -81,7 +137,7 @@ class OpenGLRenderer(GaussianRenderBase):
         index = _sort_gaussian(self.gaussians, camera.get_view_matrix())
         util.set_storage_buffer_data(self.program, "gi", index, bind_idx=1)
         return
-    
+   
     def set_scale_modifier(self, modifier):
         util.set_uniform_1f(self.program, modifier, "scale_modifier")
 
