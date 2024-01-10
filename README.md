@@ -3,7 +3,8 @@
 This is a simple Gaussian Splatting Viewer built with PyOpenGL / CUDARasterizer. It's easy to install with minimum dependencies. The goal of this project is to provide a minimum example of the viewer for research and study purpose. 
 
 # News!
-1/10/2024: The OpenGL renderer has faster sorting backend with `torch.argsort` & `cupy.argsort`.
+1/10/2024: The OpenGL renderer has faster sorting backend with `torch.argsort` & `cupy.argsort`. With cuda based sorting, it achieves nearly real-time sorting with OpenGL backend.
+
 12/21/2023: Now we support rendering using the official cuda rasterizer!
 
 # Usage
@@ -30,7 +31,7 @@ Therefore, download pretrained Gaussian PLY file from [this official link](https
 pip install cuda-python
 ```
 
-- For sorting, we provide three backend: `torch`, `cupy`, and `cpu`. The implementation will choose the first available one based on this priority order: `torch -> cupy -> cpu`.
+- For sorting, we provide three backend: `torch`, `cupy`, and `cpu`. The implementation will choose the first available one based on this priority order: `torch -> cupy -> cpu`. If you have `torch` or `cupy` backend, turning on `auto sort` will achieve nearly real-time sorting.
     - If you want to use `torch` as sorting backend, install any version of [PyTorch](https://pytorch.org/get-started/locally/).
 
     - If you want to use `cupy` to accelerate sorting, you should install the following package:
