@@ -3,13 +3,29 @@ import util
 import util_gau
 import numpy as np
 
+def _sort_gaussian(gaus, view_mat):
+    try:
+        import cupy as cp
+        xyz = cp.asarray(gaus.xyz)
+        view_mat = cp.asarray(view_mat)
 
-def _sort_gaussian(gaus: util_gau.GaussianData, view_mat):
-    xyz = gaus.xyz
-    xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
-    depth = xyz_view[:, 2, 0]
-    index = np.argsort(depth)
-    index = index.astype(np.int32).reshape(-1, 1)
+        xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
+        depth = xyz_view[:, 2, 0]
+
+        index = cp.argsort(depth)
+        index = index.astype(cp.int32).reshape(-1, 1)
+
+        index = cp.asnumpy(index) # convert to numpy
+    except ImportError:
+        xyz = np.asarray(gaus.xyz)
+        view_mat = np.asarray(view_mat)
+
+        xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
+        depth = xyz_view[:, 2, 0]
+
+        index = np.argsort(depth)
+        index = index.astype(np.int32).reshape(-1, 1)
+
     return index
     
 
