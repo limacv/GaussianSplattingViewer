@@ -35,8 +35,8 @@ g_auto_sort = False
 g_show_control_win = True
 g_show_help_win = True
 g_show_camera_win = False
-g_render_mode_tables = ["Gaussian Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
-g_render_mode = 6
+g_render_mode_tables = ["Gaussian Ball", "Flat Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
+g_render_mode = 7
 
 def impl_glfw_init():
     window_name = "NeUVF editor"
@@ -218,7 +218,7 @@ def main():
                 # render mode
                 changed, g_render_mode = imgui.combo("shading", g_render_mode, g_render_mode_tables)
                 if changed:
-                    g_renderer.set_render_mod(g_render_mode - 3)
+                    g_renderer.set_render_mod(g_render_mode - 4)
                 
                 # sort button
                 if imgui.button(label='sort Gaussians'):
