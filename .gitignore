@@ -8,3 +8,4 @@ __pycache__
 _example.py
 text.py
 toy_cuda_gs.py
+.vscode

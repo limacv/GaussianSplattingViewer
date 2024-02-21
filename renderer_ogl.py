@@ -19,6 +19,7 @@ def _sort_gaussian_cpu(gaus, view_mat):
 
 
 def _sort_gaussian_cupy(gaus, view_mat):
+    import cupy as cp
     global _sort_buffer_gausid, _sort_buffer_xyz
     if _sort_buffer_gausid != id(gaus):
         _sort_buffer_xyz = cp.asarray(gaus.xyz)
@@ -43,7 +44,7 @@ def _sort_gaussian_torch(gaus, view_mat):
         _sort_buffer_xyz = torch.tensor(gaus.xyz).cuda()
         _sort_buffer_gausid = id(gaus)
 
-    xyz = torch.tensor(gaus.xyz).cuda()
+    xyz = _sort_buffer_xyz
     view_mat = torch.tensor(view_mat).cuda()
     xyz_view = view_mat[None, :3, :3] @ xyz[..., None] + view_mat[None, :3, 3, None]
     depth = xyz_view[:, 2, 0]
@@ -120,7 +121,8 @@ class OpenGLRenderer(GaussianRenderBase):
         vao, buffer_id = util.set_attributes(self.program, ["position"], [self.quad_v])
         util.set_faces_tovao(vao, self.quad_f)
         self.vao = vao
-
+        self.gau_bufferid = None
+        self.index_bufferid = None
         # opengl settings
         gl.glDisable(gl.GL_CULL_FACE)
         gl.glEnable(gl.GL_BLEND)
@@ -130,12 +132,16 @@ class OpenGLRenderer(GaussianRenderBase):
         self.gaussians = gaus
         # load gaussian geometry
         gaussian_data = gaus.flat()
-        util.set_storage_buffer_data(self.program, "gaussian_data", gaussian_data, bind_idx=0)
+        self.gau_bufferid = util.set_storage_buffer_data(self.program, "gaussian_data", gaussian_data, 
+                                                         bind_idx=0,
+                                                         buffer_id=self.gau_bufferid)
         util.set_uniform_1int(self.program, gaus.sh_dim, "sh_dim")
 
     def sort_and_update(self, camera: util.Camera):
         index = _sort_gaussian(self.gaussians, camera.get_view_matrix())
-        util.set_storage_buffer_data(self.program, "gi", index, bind_idx=1)
+        self.index_bufferid = util.set_storage_buffer_data(self.program, "gi", index, 
+                                                           bind_idx=1,
+                                                           buffer_id=self.index_bufferid)
         return
    
     def set_scale_modifier(self, modifier):
