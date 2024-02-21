@@ -131,8 +131,8 @@ class Camera:
         self.target = self.position + _dir * self.target_dist
         
     def update_resolution(self, height, width):
-        self.h = height
-        self.w = width
+        self.h = max(height, 1)
+        self.w = max(width, 1)
         self.is_intrin_dirty = True
 
 
