@@ -3,6 +3,12 @@ import util
 import util_gau
 import numpy as np
 
+try:
+    from OpenGL.raw.WGL.EXT.swap_control import wglSwapIntervalEXT
+except:
+    wglSwapIntervalEXT = None
+
+
 _sort_buffer_xyz = None
 _sort_buffer_gausid = None  # used to tell whether gaussian is reloaded
 
@@ -73,6 +79,19 @@ except ImportError:
 class GaussianRenderBase:
     def __init__(self):
         self.gaussians = None
+        self._reduce_updates = True
+
+    @property
+    def reduce_updates(self):
+        return self._reduce_updates
+
+    @reduce_updates.setter
+    def reduce_updates(self, val):
+        self._reduce_updates = val
+        self.update_vsync()
+
+    def update_vsync(self):
+        print("VSync is not supported")
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         raise NotImplementedError()
@@ -127,6 +146,14 @@ class OpenGLRenderer(GaussianRenderBase):
         gl.glDisable(gl.GL_CULL_FACE)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+        self.update_vsync()
+
+    def update_vsync(self):
+        if wglSwapIntervalEXT is not None:
+            wglSwapIntervalEXT(1 if self.reduce_updates else 0)
+        else:
+            print("VSync is not supported")
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.gaussians = gaus
