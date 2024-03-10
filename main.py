@@ -138,9 +138,10 @@ def main():
         from renderer_cuda import CUDARenderer
         g_renderer_list += [CUDARenderer(g_camera.w, g_camera.h)]
     except ImportError:
-        pass
-    
-    g_renderer_idx = BACKEND_OGL
+        g_renderer_idx = BACKEND_OGL
+    else:
+        g_renderer_idx = BACKEND_CUDA
+
     g_renderer = g_renderer_list[g_renderer_idx]
 
     # gaussian data
