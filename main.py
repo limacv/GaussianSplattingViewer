@@ -29,7 +29,7 @@ g_renderer_list = [
     None, # ogl
 ]
 g_renderer_idx = BACKEND_OGL
-g_renderer = g_renderer_list[g_renderer_idx]
+g_renderer: GaussianRenderBase = g_renderer_list[g_renderer_idx]
 g_scale_modifier = 1.
 g_auto_sort = False
 g_show_control_win = True
@@ -186,6 +186,11 @@ def main():
                     update_activated_renderer_state(gaussians)
 
                 imgui.text(f"fps = {imgui.get_io().framerate:.1f}")
+
+                changed, g_renderer.reduce_updates = imgui.checkbox(
+                        "reduce updates", g_renderer.reduce_updates,
+                    )
+
                 imgui.text(f"# of Gaus = {len(gaussians)}")
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",

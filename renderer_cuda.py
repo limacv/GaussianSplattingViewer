@@ -12,6 +12,11 @@ from dataclasses import dataclass
 from cuda import cudart as cu
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 
+try:
+    from OpenGL.raw.WGL.EXT.swap_control import wglSwapIntervalEXT
+except:
+    wglSwapIntervalEXT = None
+
 
 VERTEX_SHADER_SOURCE = """
 #version 450
@@ -131,12 +136,13 @@ class CUDARenderer(GaussianRenderBase):
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
         self.need_rerender = True
+        self.update_vsync()
 
-        try:
-            from OpenGL.raw.WGL.EXT.swap_control import wglSwapIntervalEXT
-            wglSwapIntervalEXT(1)
-        except:
-            print("VSync not supported")
+    def update_vsync(self):
+        if wglSwapIntervalEXT is not None:
+            wglSwapIntervalEXT(1 if self.reduce_updates else 0)
+        else:
+            print("VSync is not supported")
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.need_rerender = True
@@ -207,7 +213,7 @@ class CUDARenderer(GaussianRenderBase):
         self.raster_settings["tanfovy"] = hfovy
 
     def draw(self):
-        if not self.need_rerender:
+        if self.reduce_updates and not self.need_rerender:
             gl.glUseProgram(self.program)
             gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex)
             gl.glBindVertexArray(self.vao)
