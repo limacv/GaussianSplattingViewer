@@ -130,19 +130,23 @@ class CUDARenderer(GaussianRenderBase):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
+        self.need_rerender = True
+
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
+        self.need_rerender = True
         self.gaussians = gaus_cuda_from_cpu(gaus)
         self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
 
     def sort_and_update(self, camera: util.Camera):
-        pass
-    
+        self.need_rerender = True
+
     def set_scale_modifier(self, modifier):
+        self.need_rerender = True
         self.raster_settings["scale_modifier"] = float(modifier)
 
     def set_render_mod(self, mod: int):
-        pass
-    
+        self.need_rerender = True
+
     def set_gl_texture(self, h, w):
         self.tex = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex)
@@ -171,12 +175,14 @@ class CUDARenderer(GaussianRenderBase):
             raise RuntimeError("Unable to register opengl texture")
     
     def set_render_reso(self, w, h):
+        self.need_rerender = True
         self.raster_settings["image_height"] = int(h)
         self.raster_settings["image_width"] = int(w)
         gl.glViewport(0, 0, w, h)
         self.set_gl_texture(h, w)
 
     def update_camera_pose(self, camera: util.Camera):
+        self.need_rerender = True
         view_matrix = camera.get_view_matrix()
         view_matrix[[0, 2], :] = -view_matrix[[0, 2], :]
         proj = camera.get_project_matrix() @ view_matrix
@@ -185,6 +191,7 @@ class CUDARenderer(GaussianRenderBase):
         self.raster_settings["projmatrix"] = torch.tensor(proj.T).float().cuda()
 
     def update_camera_intrin(self, camera: util.Camera):
+        self.need_rerender = True
         view_matrix = camera.get_view_matrix()
         view_matrix[[0, 2], :] = -view_matrix[[0, 2], :]
         proj = camera.get_project_matrix() @ view_matrix
@@ -194,6 +201,15 @@ class CUDARenderer(GaussianRenderBase):
         self.raster_settings["tanfovy"] = hfovy
 
     def draw(self):
+        if not self.need_rerender:
+            gl.glUseProgram(self.program)
+            gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex)
+            gl.glBindVertexArray(self.vao)
+            gl.glDrawArrays(gl.GL_TRIANGLES, 0, 3)
+            return
+
+        self.need_rerender = False
+
         # run cuda rasterizer now is just a placeholder
         # img = torch.meshgrid((torch.linspace(0, 1, 720), torch.linspace(0, 1, 1280)))
         # img = torch.stack([img[0], img[1], img[1], img[1]], dim=-1)
