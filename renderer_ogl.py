@@ -128,6 +128,12 @@ class OpenGLRenderer(GaussianRenderBase):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
+        try:
+            from OpenGL.raw.WGL.EXT.swap_control import wglSwapIntervalEXT
+            wglSwapIntervalEXT(1)
+        except:
+            print("VSync not supported")
+
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.gaussians = gaus
         # load gaussian geometry

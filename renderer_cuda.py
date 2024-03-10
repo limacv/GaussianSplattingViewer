@@ -132,6 +132,12 @@ class CUDARenderer(GaussianRenderBase):
 
         self.need_rerender = True
 
+        try:
+            from OpenGL.raw.WGL.EXT.swap_control import wglSwapIntervalEXT
+            wglSwapIntervalEXT(1)
+        except:
+            print("VSync not supported")
+
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.need_rerender = True
         self.gaussians = gaus_cuda_from_cpu(gaus)
