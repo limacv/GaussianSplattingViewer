@@ -55,6 +55,7 @@ The rendering speed of is comparable to the official CUDA renderer. If you're ex
 - Based on the flip test between the two backends, the unofficial implementation seems producing slightly different results compared with the official cuda version.
 
 # TODO
+- Add orthogonal projection
 - Make the projection matrix compatiable with official cuda implementation
 - Tighter billboard to reduce number of fragments
 - Save viewing parameters
