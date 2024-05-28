@@ -73,14 +73,17 @@ def load_ply(path):
     features_dc[:, 2, 0] = np.asarray(plydata.elements[0]["f_dc_2"])
 
     extra_f_names = [p.name for p in plydata.elements[0].properties if p.name.startswith("f_rest_")]
-    extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))
-    assert len(extra_f_names)==3 * (max_sh_degree + 1) ** 2 - 3
-    features_extra = np.zeros((xyz.shape[0], len(extra_f_names)))
-    for idx, attr_name in enumerate(extra_f_names):
-        features_extra[:, idx] = np.asarray(plydata.elements[0][attr_name])
-    # Reshape (P,F*SH_coeffs) to (P, F, SH_coeffs except DC)
-    features_extra = features_extra.reshape((features_extra.shape[0], 3, (max_sh_degree + 1) ** 2 - 1))
-    features_extra = np.transpose(features_extra, [0, 2, 1])
+    if len(extra_f_names) > 0:
+        extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))
+        assert len(extra_f_names)==3 * (max_sh_degree + 1) ** 2 - 3
+        features_extra = np.zeros((xyz.shape[0], len(extra_f_names)))
+        for idx, attr_name in enumerate(extra_f_names):
+            features_extra[:, idx] = np.asarray(plydata.elements[0][attr_name])
+        # Reshape (P,F*SH_coeffs) to (P, F, SH_coeffs except DC)
+        features_extra = features_extra.reshape((features_extra.shape[0], 3, (max_sh_degree + 1) ** 2 - 1))
+        features_extra = np.transpose(features_extra, [0, 2, 1])
+    else:
+        extra_f_names = None
 
     scale_names = [p.name for p in plydata.elements[0].properties if p.name.startswith("scale_")]
     scale_names = sorted(scale_names, key = lambda x: int(x.split('_')[-1]))
@@ -102,8 +105,11 @@ def load_ply(path):
     scales = scales.astype(np.float32)
     opacities = 1/(1 + np.exp(- opacities))  # sigmoid
     opacities = opacities.astype(np.float32)
-    shs = np.concatenate([features_dc.reshape(-1, 3), 
-                        features_extra.reshape(len(features_dc), -1)], axis=-1).astype(np.float32)
+    if extra_f_names is not None:
+        shs = np.concatenate([features_dc.reshape(-1, 3), 
+                            features_extra.reshape(len(features_dc), -1)], axis=-1).astype(np.float32)
+    else:
+        shs = features_dc.reshape(-1, 3)
     shs = shs.astype(np.float32)
     return GaussianData(xyz, rots, scales, opacities, shs)
 
