@@ -2,6 +2,8 @@ from OpenGL import GL as gl
 import util
 import util_gau
 import numpy as np
+from functools import reduce
+from typing import Optional
 
 try:
     from OpenGL.raw.WGL.EXT.swap_control import wglSwapIntervalEXT
@@ -79,7 +81,7 @@ except ImportError:
 class GaussianRenderBase:
     def __init__(self):
         self.gaussians = None
-        self._reduce_updates = True
+        self._reduce_updates = False
 
     @property
     def reduce_updates(self):
@@ -94,6 +96,9 @@ class GaussianRenderBase:
         print("VSync is not supported")
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
+        raise NotImplementedError()
+    
+    def add_gaussian_instance(self, gaus: util_gau.GaussianData, offset: Optional[np.ndarray] = None):
         raise NotImplementedError()
     
     def sort_and_update(self):
@@ -164,11 +169,14 @@ class OpenGLRenderer(GaussianRenderBase):
                                                          buffer_id=self.gau_bufferid)
         util.set_uniform_1int(self.program, gaus.sh_dim, "sh_dim")
 
+
     def sort_and_update(self, camera: util.Camera):
+        print("[*] Sorting and updating Gaussians...")
         index = _sort_gaussian(self.gaussians, camera.get_view_matrix())
         self.index_bufferid = util.set_storage_buffer_data(self.program, "gi", index, 
-                                                           bind_idx=1,
-                                                           buffer_id=self.index_bufferid)
+                                                        bind_idx=1,
+                                                        buffer_id=self.index_bufferid)
+        print("[*] Done!")
         return
    
     def set_scale_modifier(self, modifier):

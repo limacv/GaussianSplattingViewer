@@ -1,6 +1,7 @@
 '''
 Part of the code (CUDA and OpenGL memory transfer) is derived from https://github.com/jbaron34/torchwindow/tree/master
 '''
+import functools
 from OpenGL import GL as gl
 import OpenGL.GL.shaders as shaders
 import util
@@ -8,6 +9,7 @@ import util_gau
 import numpy as np
 import torch
 from renderer_ogl import GaussianRenderBase
+from typing import Union
 from dataclasses import dataclass
 from cuda import cudart as cu
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
@@ -144,10 +146,15 @@ class CUDARenderer(GaussianRenderBase):
         else:
             print("VSync is not supported")
 
-    def update_gaussian_data(self, gaus: util_gau.GaussianData):
+    def compute_sh_degree(self, gaus):
+        return int(np.round(np.sqrt(gaus.sh_dim))) - 1
+
+    def update_gaussian_data(self, gaus: Union[util_gau.GaussianData, GaussianDataCUDA], sh_degree = None):
         self.need_rerender = True
-        self.gaussians = gaus_cuda_from_cpu(gaus)
-        self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
+        if not isinstance(gaus, GaussianDataCUDA):
+            gaus = gaus_cuda_from_cpu(gaus)
+        self.gaussians = gaus
+        self.raster_settings["sh_degree"] = sh_degree if sh_degree is not None else self.compute_sh_degree(gaus)
 
     def sort_and_update(self, camera: util.Camera):
         self.need_rerender = True
