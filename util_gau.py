@@ -19,7 +19,18 @@ class GaussianData:
     @property 
     def sh_dim(self):
         return self.sh.shape[-1]
+    
+    @property
+    def points_center(self):
+        return np.mean(self.xyz, axis=0)
 
+    @property
+    def points_min(self):
+        return np.min(self.xyz, axis=0)
+
+    @property
+    def points_max(self):
+        return np.max(self.xyz, axis=0)
 
 def naive_gaussian():
     gau_xyz = np.array([

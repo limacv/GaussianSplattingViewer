@@ -257,6 +257,19 @@ def set_gl_bindings(vertices, faces):
     # glVertexAttribPointer(2, 3, GL_FLOAT, False, 36, ctypes.c_void_p(12))
     # glEnableVertexAttribArray(2)
 
+def set_uniform_mat3(shader, content, name):
+    glUseProgram(shader)
+    if isinstance(content, glm.mat3):
+        content = np.array(content).astype(np.float32)
+    else:
+        content = content.T
+    glUniformMatrix3fv(
+        glGetUniformLocation(shader, name),
+        1,
+        GL_FALSE,
+        content.astype(np.float32)
+    )
+
 def set_uniform_mat4(shader, content, name):
     glUseProgram(shader)
     if isinstance(content, glm.mat4):
@@ -341,4 +354,30 @@ def update_texture2d(img, texid, offset):
         GL_RGB, GL_UNSIGNED_BYTE, img
     )
 
-
+def calculate_rotation_matrix(angles):
+    # Convert angles from degrees to radians
+    angles = np.radians(angles)
+    # Compute sine and cosine for each angle
+    sx, sy, sz = np.sin(angles)
+    cx, cy, cz = np.cos(angles)
+    # Rotation matrix around the X-axis
+    Rx = np.array([
+        [1, 0, 0],
+        [0, cx, -sx],
+        [0, sx, cx]
+    ])
+    # Rotation matrix around the Y-axis
+    Ry = np.array([
+        [cy, 0, sy],
+        [0, 1, 0],
+        [-sy, 0, cy]
+    ])
+    # Rotation matrix around the Z-axis
+    Rz = np.array([
+        [cz, -sz, 0],
+        [sz, cz, 0],
+        [0, 0, 1]
+    ])
+    # Combined rotation matrix
+    R = np.dot(Rz, np.dot(Ry, Rx))
+    return R

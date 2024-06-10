@@ -111,6 +111,18 @@ class GaussianRenderBase:
     def update_camera_intrin(self, camera: util.Camera):
         raise NotImplementedError()
     
+    def set_enable_cube(self, enable_cube: int):
+        raise NotImplementedError()
+    
+    def set_cube_rotation(self, cube_rotation: list):
+        raise NotImplementedError()
+
+    def set_point_cubeMin(self, point_cubeMin: list):
+        raise NotImplementedError()
+    
+    def set_point_cubeMax(self, point_cubeMax: list):
+        raise NotImplementedError()
+    
     def draw(self):
         raise NotImplementedError()
     
@@ -189,6 +201,27 @@ class OpenGLRenderer(GaussianRenderBase):
         proj_mat = camera.get_project_matrix()
         util.set_uniform_mat4(self.program, proj_mat, "projection_matrix")
         util.set_uniform_v3(self.program, camera.get_htanfovxy_focal(), "hfovxy_focal")
+
+    # Set the center point coordinates
+    def set_points_center(self, points_center: list):
+        util.set_uniform_v3(self.program, points_center, "points_center")
+
+    # Set whether to use a cube to limit the rendering area
+    def set_enable_cube(self, enable_cube: int):
+        util.set_uniform_1int(self.program, enable_cube, "enable_cube")
+
+    # Set the rotation of the cube
+    def set_cube_rotation(self, cube_rotation: list):
+        R = util.calculate_rotation_matrix(cube_rotation)
+        util.set_uniform_mat3(self.program, R, "cube_rotation") 
+
+    # Set the minimum coordinates of the cube
+    def set_point_cubeMin(self, point_cubeMin: list):
+        util.set_uniform_v3(self.program, point_cubeMin, "cubeMin")
+
+    # Set the maximum coordinates of the cube
+    def set_point_cubeMax(self, point_cubeMax: list):
+        util.set_uniform_v3(self.program, point_cubeMax, "cubeMax")
 
     def draw(self):
         gl.glUseProgram(self.program)
