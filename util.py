@@ -137,8 +137,10 @@ class Camera:
 
 
 def load_shaders(vs, fs):
-    vertex_shader = open(vs, 'r').read()        
-    fragment_shader = open(fs, 'r').read()
+    with open(vs, 'r', encoding='utf-8') as file:
+        vertex_shader = file.read()
+    with open(fs, 'r', encoding='utf-8') as file:
+        fragment_shader = file.read()
 
     active_shader = shaders.compileProgram(
         shaders.compileShader(vertex_shader, GL_VERTEX_SHADER),
